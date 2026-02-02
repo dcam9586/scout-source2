@@ -3,7 +3,8 @@ import { Page, BlockStack, Card, Box, Text, Icon, Badge, InlineStack } from '@sh
 import { SearchIcon } from '@shopify/polaris-icons';
 import SearchBar from './SearchBar';
 import SearchResults from './SearchResults';
-import { SkeletonGrid } from './SkeletonLoader';
+import ResultsTable from './ResultsTable';
+import { SkeletonGrid, SearchLoadingSkeleton } from './SkeletonLoader';
 import SearchLoadingOverlay from './SearchLoadingOverlay';
 import ProductDetailsModal from './ProductDetailsModal';
 import CompareBar from './CompareBar';
@@ -338,29 +339,57 @@ const SearchPage: React.FC<SearchPageProps> = () => {
           </Card>
         )}
 
-        {/* Show skeleton loader while searching */}
+        {/* Show enhanced skeleton loader while searching */}
         {isSearching && (
-          <SkeletonGrid count={6} />
+          <SearchLoadingSkeleton query={query} />
         )}
 
-        {/* Animated loading overlay */}
+        {/* Animated loading overlay - kept for visual enhancement */}
         <SearchLoadingOverlay 
           isVisible={isSearching} 
           sources={searchedSources} 
           query={query} 
         />
 
-        {query && !isSearching && (
-          <SearchResults
-            query={query}
+        {/* Responsive Results - Table on desktop, Cards on mobile */}
+        {query && !isSearching && results.length > 0 && (
+          <ResultsTable
             results={results}
-            isLoading={false}
             savedProductUrls={savedProductUrls}
             savingProductId={savingProductId}
             onSave={handleSaveProduct}
             onCompare={handleCompareProduct}
             onViewDetails={handleViewDetails}
           />
+        )}
+
+        {/* Also keep the card grid for fallback/alternative view */}
+        {query && !isSearching && results.length > 0 && (
+          <div style={{ marginTop: '2rem' }}>
+            <Text as="h3" variant="headingMd">Card View</Text>
+            <SearchResults
+              query={query}
+              results={results}
+              isLoading={false}
+              savedProductUrls={savedProductUrls}
+              savingProductId={savingProductId}
+              onSave={handleSaveProduct}
+              onCompare={handleCompareProduct}
+              onViewDetails={handleViewDetails}
+            />
+          </div>
+        )}
+
+        {/* Empty state when no results */}
+        {query && !isSearching && results.length === 0 && (
+          <Card>
+            <Box padding="800">
+              <BlockStack gap="400" align="center">
+                <Text as="h2" variant="headingMd">No products found</Text>
+                <Text as="p" tone="subdued">Try adjusting your search query or select different sources</Text>
+              </BlockStack>
+            </Box>
+          </Card>
           )}
 
         {!query && !error && (

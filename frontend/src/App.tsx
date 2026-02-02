@@ -10,6 +10,7 @@ import './styles/pages.css';
 
 // Layout Components (loaded immediately)
 import Navigation from './components/Navigation';
+import Footer from './components/Footer';
 
 // Page Components (lazy loaded for code splitting)
 const Dashboard = lazy(() => import('./components/Dashboard'));
@@ -18,6 +19,11 @@ const SavedPage = lazy(() => import('./components/SavedPage'));
 const ComparisonsPage = lazy(() => import('./components/ComparisonsPage'));
 const ApiKeysPage = lazy(() => import('./components/ApiKeysPage'));
 const PushedProductsPage = lazy(() => import('./components/PushedProductsPage'));
+
+// Legal and Landing Pages
+const LandingPage = lazy(() => import('./pages/LandingPage'));
+const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'));
+const TermsOfService = lazy(() => import('./pages/TermsOfService'));
 
 // Loading fallback component
 const PageLoader: React.FC = () => (
@@ -59,8 +65,7 @@ const App: React.FC = () => {
     }
   }, [getProfile, getUsage]);
 
-  const handleLoginClick = async (e: React.MouseEvent<HTMLButtonElement>) => {
-    e.preventDefault();
+  const handleLoginClick = async () => {
     try {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
       const response = await fetch(`${apiUrl}/api/v1/auth/shopify?shop=sourcescout.myshopify.com`);
@@ -73,38 +78,20 @@ const App: React.FC = () => {
     }
   };
 
+  // Show landing page for unauthenticated users
   if (!token) {
     return (
       <AppProvider i18n={{}}>
-        <div style={{ padding: '2rem', textAlign: 'center' }} role="main" aria-label="SourceScout login page">
-          <h1>SourceScout</h1>
-          <p>Please authenticate with your Shopify store to continue.</p>
-          <button 
-            onClick={handleLoginClick}
-            aria-label="Login with your Shopify store account"
-            aria-describedby="login-help"
-            style={{ 
-              display: 'inline-block',
-              marginTop: '1rem',
-              padding: '0.75rem 1.5rem',
-              backgroundColor: '#008060',
-              color: 'white',
-              textDecoration: 'none',
-              borderRadius: '4px',
-              fontWeight: '600',
-              border: 'none',
-              cursor: 'pointer',
-              fontSize: '1rem',
-              minWidth: '44px',
-              minHeight: '44px'
-            }}
-          >
-            Login with Shopify
-          </button>
-          <p id="login-help" style={{ fontSize: '0.875rem', marginTop: '1rem', color: '#666' }}>
-            You need to be authenticated to access SourceScout
-          </p>
-        </div>
+        <Router>
+          <Suspense fallback={<PageLoader />}>
+            <Routes>
+              <Route path="/" element={<LandingPage onLoginClick={handleLoginClick} />} />
+              <Route path="/privacy" element={<PrivacyPolicy />} />
+              <Route path="/terms" element={<TermsOfService />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </Suspense>
+        </Router>
       </AppProvider>
     );
   }
@@ -122,10 +109,13 @@ const App: React.FC = () => {
               <Route path="/comparisons" element={<ComparisonsPage />} />
               <Route path="/pushed" element={<PushedProductsPage />} />
               <Route path="/settings" element={<ApiKeysPage />} />
+              <Route path="/privacy" element={<PrivacyPolicy />} />
+              <Route path="/terms" element={<TermsOfService />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </Suspense>
         </main>
+        <Footer />
       </Router>
     </AppProvider>
   );
