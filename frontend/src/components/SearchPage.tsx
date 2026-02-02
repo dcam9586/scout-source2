@@ -87,12 +87,8 @@ const SimpleToast: React.FC<SimpleToastProps> = ({ message, isError, onDismiss }
 interface SearchPageProps {}
 
 const SearchPage: React.FC<SearchPageProps> = () => {
-  const [query, setQuery] = useState('');
-  const [results, setResults] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [searchedSources, setSearchedSources] = useState<SearchSource[]>([]);
-  const [sourceStats, setSourceStats] = useState<Record<string, number>>({});
   
   // Toast notifications
   const [toastActive, setToastActive] = useState(false);
@@ -112,6 +108,16 @@ const SearchPage: React.FC<SearchPageProps> = () => {
   const savedItems = useAppStore((state) => state.savedItems);
   const addToCompare = useAppStore((state) => state.addToCompare);
   const compareItems = useAppStore((state) => state.compareItems);
+  
+  // Persisted search state
+  const searchState = useAppStore((state) => state.searchState);
+  const setSearchState = useAppStore((state) => state.setSearchState);
+  
+  // Derived state from persisted search state
+  const query = searchState?.query || '';
+  const results = searchState?.results || [];
+  const searchedSources = searchState?.sources || [];
+  const sourceStats = searchState?.sourceStats || {};
   
   // Load saved items on mount to track which products are already saved
   useEffect(() => {
@@ -143,11 +149,8 @@ const SearchPage: React.FC<SearchPageProps> = () => {
       return;
     }
 
-    setQuery(searchQuery);
     setIsSearching(true);
     setError(null);
-    setSearchedSources(sources);
-    setSourceStats({});
 
     try {
       // Use the unified search endpoint that supports multiple sources
@@ -169,7 +172,7 @@ const SearchPage: React.FC<SearchPageProps> = () => {
       const data = await response.json();
       
       // Combine results from all sources
-      const allResults: any[] = [];
+      const allResults: ProductCardProps[] = [];
       const stats: Record<string, number> = {};
       
       if (data.results) {
@@ -188,8 +191,14 @@ const SearchPage: React.FC<SearchPageProps> = () => {
         }
       }
       
-      setResults(allResults);
-      setSourceStats(stats);
+      // Persist search results to store
+      setSearchState({
+        query: searchQuery,
+        results: allResults,
+        sources,
+        sourceStats: stats,
+        timestamp: Date.now()
+      });
 
       if (allResults.length === 0) {
         setError('No products found. Try a different search term or enable more sources.');
@@ -197,12 +206,19 @@ const SearchPage: React.FC<SearchPageProps> = () => {
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Search failed. Please try again.';
       setError(errorMessage);
-      setResults([]);
+      // Clear search state on error
+      setSearchState({
+        query: searchQuery,
+        results: [],
+        sources,
+        sourceStats: {},
+        timestamp: Date.now()
+      });
       console.error('Search error:', err);
     } finally {
       setIsSearching(false);
     }
-  }, []);
+  }, [setSearchState]);
 
   /**
    * Handle product save action

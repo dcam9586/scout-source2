@@ -11,7 +11,7 @@ export function useSavedItems() {
   const fetchSavedItems = useCallback(async () => {
     try {
       const response = await api.get<{ items: SavedItem[] }>(
-        '/api/saved-items'
+        '/api/v1/saved-items'
       );
       setSavedItems(response.data.items);
       return response.data.items;
@@ -25,7 +25,7 @@ export function useSavedItems() {
     async (item: Omit<SavedItem, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => {
       try {
         const response = await api.post<{ item: SavedItem }>(
-          '/api/saved-items',
+          '/api/v1/saved-items',
           item
         );
         addSavedItem(response.data.item);
@@ -45,7 +45,7 @@ export function useSavedItems() {
     ): Promise<SavedItem> => {
       try {
         const response = await api.put<{ item: SavedItem }>(
-          `/api/saved-items/${id}`,
+          `/api/v1/saved-items/${id}`,
           updates
         );
         return response.data.item;
@@ -60,7 +60,7 @@ export function useSavedItems() {
   const deleteSavedItem = useCallback(
     async (id: number) => {
       try {
-        await api.delete(`/api/saved-items/${id}`);
+        await api.delete(`/api/v1/saved-items/${id}`);
         removeSavedItem(id);
       } catch (error) {
         console.error('Failed to delete saved item:', error);
