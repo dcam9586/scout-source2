@@ -1,0 +1,134 @@
+import React, { useEffect, Suspense, lazy } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { AppProvider, Spinner } from '@shopify/polaris';
+import '@shopify/polaris/build/esm/styles.css';
+import useAppStore from './store/appStore';
+import { useAuth } from './hooks/useAuth';
+import './styles/globals.css';
+import './styles/components.css';
+import './styles/pages.css';
+
+// Layout Components (loaded immediately)
+import Navigation from './components/Navigation';
+
+// Page Components (lazy loaded for code splitting)
+const Dashboard = lazy(() => import('./components/Dashboard'));
+const SearchPage = lazy(() => import('./components/SearchPage'));
+const SavedPage = lazy(() => import('./components/SavedPage'));
+const ComparisonsPage = lazy(() => import('./components/ComparisonsPage'));
+const ApiKeysPage = lazy(() => import('./components/ApiKeysPage'));
+const PushedProductsPage = lazy(() => import('./components/PushedProductsPage'));
+
+// Loading fallback component
+const PageLoader: React.FC = () => (
+  <div style={{ 
+    display: 'flex', 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    height: '50vh',
+    flexDirection: 'column',
+    gap: '1rem'
+  }}>
+    <Spinner accessibilityLabel="Loading page" size="large" />
+    <p style={{ color: '#666' }}>Loading...</p>
+  </div>
+);
+
+const App: React.FC = () => {
+  const token = useAppStore((state) => state.token);
+  const { getProfile, getUsage } = useAuth();
+
+  useEffect(() => {
+    if (token) {
+      getProfile().catch(console.error);
+      getUsage().catch(console.error);
+    }
+  }, [token, getProfile, getUsage]);
+
+  // Check for auth token in URL (from OAuth callback)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const tokenParam = params.get('token');
+    const shop = params.get('shop');
+
+    if (tokenParam) {
+      useAppStore.getState().setToken(tokenParam);
+      getProfile().catch(console.error);
+      getUsage().catch(console.error);
+      window.history.replaceState({}, document.title, '/');
+    }
+  }, [getProfile, getUsage]);
+
+  const handleLoginClick = async (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+      const response = await fetch(`${apiUrl}/api/v1/auth/shopify?shop=sourcescout.myshopify.com`);
+      const data = await response.json() as { authUrl: string };
+      // Redirect to Shopify authorization page
+      window.location.href = data.authUrl;
+    } catch (error) {
+      console.error('OAuth initiation failed:', error);
+      alert('Failed to initiate login. Please try again.');
+    }
+  };
+
+  if (!token) {
+    return (
+      <AppProvider i18n={{}}>
+        <div style={{ padding: '2rem', textAlign: 'center' }} role="main" aria-label="SourceScout login page">
+          <h1>SourceScout</h1>
+          <p>Please authenticate with your Shopify store to continue.</p>
+          <button 
+            onClick={handleLoginClick}
+            aria-label="Login with your Shopify store account"
+            aria-describedby="login-help"
+            style={{ 
+              display: 'inline-block',
+              marginTop: '1rem',
+              padding: '0.75rem 1.5rem',
+              backgroundColor: '#008060',
+              color: 'white',
+              textDecoration: 'none',
+              borderRadius: '4px',
+              fontWeight: '600',
+              border: 'none',
+              cursor: 'pointer',
+              fontSize: '1rem',
+              minWidth: '44px',
+              minHeight: '44px'
+            }}
+          >
+            Login with Shopify
+          </button>
+          <p id="login-help" style={{ fontSize: '0.875rem', marginTop: '1rem', color: '#666' }}>
+            You need to be authenticated to access SourceScout
+          </p>
+        </div>
+      </AppProvider>
+    );
+  }
+
+  return (
+    <AppProvider i18n={{}}>
+      <Router>
+        <Navigation />
+        <main id="main-content" role="main" aria-label="SourceScout main content">
+          <Suspense fallback={<PageLoader />}>
+            <Routes>
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/search" element={<SearchPage />} />
+              <Route path="/saved" element={<SavedPage />} />
+              <Route path="/comparisons" element={<ComparisonsPage />} />
+              <Route path="/pushed" element={<PushedProductsPage />} />
+              <Route path="/settings" element={<ApiKeysPage />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </Suspense>
+        </main>
+      </Router>
+    </AppProvider>
+  );
+};
+
+export default App;

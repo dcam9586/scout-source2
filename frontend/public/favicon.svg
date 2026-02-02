@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Background gradient -->
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1e5799"/>
+      <stop offset="50%" style="stop-color:#2989d8"/>
+      <stop offset="100%" style="stop-color:#207cca"/>
+    </linearGradient>
+    <linearGradient id="boxGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f5a623"/>
+      <stop offset="100%" style="stop-color:#e8912a"/>
+    </linearGradient>
+  </defs>
+  
+  <!-- Rounded square background -->
+  <rect x="32" y="32" width="448" height="448" rx="64" ry="64" fill="url(#bgGrad)"/>
+  
+  <!-- Globe -->
+  <circle cx="200" cy="200" r="100" fill="none" stroke="#4a90d9" stroke-width="8" opacity="0.7"/>
+  <ellipse cx="200" cy="200" rx="100" ry="40" fill="none" stroke="#4a90d9" stroke-width="6" opacity="0.6"/>
+  <line x1="200" y1="100" x2="200" y2="300" stroke="#4a90d9" stroke-width="6" opacity="0.6"/>
+  <ellipse cx="200" cy="200" rx="40" ry="100" fill="none" stroke="#4a90d9" stroke-width="6" opacity="0.6"/>
+  
+  <!-- Package box -->
+  <rect x="220" y="250" width="140" height="120" rx="8" fill="url(#boxGrad)"/>
+  <line x1="220" y1="290" x2="360" y2="290" stroke="#d4851f" stroke-width="4"/>
+  <line x1="290" y1="250" x2="290" y2="290" stroke="#d4851f" stroke-width="4"/>
+  
+  <!-- Magnifying glass -->
+  <circle cx="160" cy="320" r="50" fill="none" stroke="#fff" stroke-width="12"/>
+  <line x1="120" y1="360" x2="80" y2="400" stroke="#fff" stroke-width="16" stroke-linecap="round"/>
+  <circle cx="160" cy="320" r="35" fill="#87ceeb" opacity="0.3"/>
+  
+  <!-- Location pin -->
+  <path d="M400 120 C430 120 450 145 450 175 C450 220 400 260 400 260 C400 260 350 220 350 175 C350 145 370 120 400 120" fill="#ff6b35"/>
+  <circle cx="400" cy="170" r="20" fill="#fff"/>
+  
+  <!-- Radar waves -->
+  <path d="M380 380 Q420 360 430 400" fill="none" stroke="#4ecdc4" stroke-width="6" opacity="0.8"/>
+  <path d="M360 400 Q420 370 440 420" fill="none" stroke="#4ecdc4" stroke-width="6" opacity="0.6"/>
+  <path d="M340 420 Q420 380 450 440" fill="none" stroke="#4ecdc4" stroke-width="6" opacity="0.4"/>
+  <circle cx="380" cy="400" r="8" fill="#4ecdc4"/>
+</svg>

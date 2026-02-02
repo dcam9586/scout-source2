@@ -1,0 +1,21 @@
+# Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
+
+client_id = "4c363438ac4797bd0a851690797b6fd2"
+name = "ScoutSource2"
+application_url = "https://ground-images-exposed-victoria.trycloudflare.com"
+embedded = false
+
+[webhooks]
+api_version = "2026-04"
+
+[access_scopes]
+# Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
+scopes = "write_products,read_products"
+
+[auth]
+redirect_urls = [ 
+  "https://ground-images-exposed-victoria.trycloudflare.com/auth/callback"
+]
+
+[pos]
+embedded = false
