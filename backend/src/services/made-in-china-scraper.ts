@@ -232,8 +232,12 @@ class MadeInChinaScraper {
 
               // Extract image
               const imgEl = element.querySelector('img[src], img[data-src]');
-              const imageUrl = (imgEl as HTMLImageElement)?.src || 
+              let imageUrl = (imgEl as HTMLImageElement)?.src || 
                               imgEl?.getAttribute('data-src') || '';
+              // Fix protocol-relative URLs
+              if (imageUrl.startsWith('//')) {
+                imageUrl = 'https:' + imageUrl;
+              }
 
               // Extract supplier info
               const supplierEl = element.querySelector('.company, .supplier, .factory, .manufacturer, [class*="company"]');

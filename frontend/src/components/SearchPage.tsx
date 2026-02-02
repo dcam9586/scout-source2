@@ -181,10 +181,14 @@ const SearchPage: React.FC<SearchPageProps> = () => {
           const sourceResults = data.results[source] || [];
           stats[source] = sourceResults.length;
           
-          // Tag each result with its source
+          // Normalize and tag each result with its source
           sourceResults.forEach((product: any) => {
             allResults.push({
               ...product,
+              // Map image_url to image for ProductCard compatibility
+              image: product.image_url || product.image || product.bigImage,
+              // Ensure source_url is available for saving
+              source_url: product.url || product.source_url,
               source: source
             });
           });

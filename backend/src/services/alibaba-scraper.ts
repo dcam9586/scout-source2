@@ -235,13 +235,19 @@ class AlibabaScraper {
           const price = this.parsePrice(product.price);
           const rating = this.parseRating(product.rating);
           const responseRate = this.parseResponseRate(product.rating);
+          
+          // Fix protocol-relative URLs (//s.alicdn.com/... -> https://s.alicdn.com/...)
+          let imageUrl = product.image || '';
+          if (imageUrl.startsWith('//')) {
+            imageUrl = 'https:' + imageUrl;
+          }
 
           const normalized: ScrapedProduct = {
             id: `alibaba-${Date.now()}-${index}`,
             title: product.title,
             price,
             minOrder: this.parseMinOrder(product.price),
-            image_url: product.image,
+            image_url: imageUrl,
             url: product.url,
             supplierName: product.supplier,
             supplierRating: rating,
