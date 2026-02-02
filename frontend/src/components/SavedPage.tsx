@@ -1,48 +1,9 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { Page, BlockStack, Card, Box, Text, Button, InlineStack, Banner } from '@shopify/polaris';
+import { Page, BlockStack, Card, Box, Text, Button, InlineStack, Banner, Spinner } from '@shopify/polaris';
 import SavedItems from './SavedItems';
 import { usePushToShopify } from '../hooks/usePushToShopify';
+import { useSavedItems } from '../hooks/useSavedItems';
 import { PushToShopifyData } from '../types';
-
-// Mock data for development testing
-const MOCK_SAVED_ITEMS = [
-  {
-    id: '1',
-    title: 'USB-C Charging Cable 3ft - Fast Charge Compatible',
-    image: 'https://via.placeholder.com/300x300?text=USB+Cable',
-    price: 2.50,
-    currency: 'USD',
-    supplier: 'Shenzhen Electronics Co.',
-    moq: 100,
-    rating: 4.5,
-    reviews: 1250,
-    source: 'alibaba' as const,
-  },
-  {
-    id: '2',
-    title: 'Wireless Bluetooth Earbuds TWS 5.0',
-    image: 'https://via.placeholder.com/300x300?text=Earbuds',
-    price: 8.99,
-    currency: 'USD',
-    supplier: 'Guangzhou Audio Tech',
-    moq: 50,
-    rating: 4.2,
-    reviews: 890,
-    source: 'made-in-china' as const,
-  },
-  {
-    id: '3',
-    title: 'Phone Case Silicone Soft Cover iPhone 15',
-    image: 'https://via.placeholder.com/300x300?text=Phone+Case',
-    price: 1.20,
-    currency: 'USD',
-    supplier: 'Dongguan Cases Factory',
-    moq: 200,
-    rating: 4.7,
-    reviews: 2100,
-    source: 'alibaba' as const,
-  },
-];
 
 /**
  * SavedPage Component
@@ -63,61 +24,85 @@ const MOCK_SAVED_ITEMS = [
 interface SavedPageProps {}
 
 const SavedPage: React.FC<SavedPageProps> = () => {
-  const [savedItems, setSavedItems] = useState<any[]>(MOCK_SAVED_ITEMS);
-  const [isLoading, setIsLoading] = useState(false);
+  const [savedItems, setSavedItems] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [pushSuccess, setPushSuccess] = useState<string | null>(null);
 
   // Push to Shopify hook
   const { pushProduct, isPushing, error: pushError, clearError } = usePushToShopify();
+  
+  // Saved items hook
+  const { fetchSavedItems, deleteSavedItem } = useSavedItems();
 
-  // DEV MODE: Skip API call and use mock data
-  // useEffect(() => {
-  //   const fetchSavedItems = async () => {
-  //     ... API call ...
-  //   };
-  //   fetchSavedItems();
-  // }, []);
+  // Fetch saved items on mount
+  useEffect(() => {
+    const loadSavedItems = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+        const items = await fetchSavedItems();
+        // Map the items to ensure proper image field
+        const mappedItems = items.map((item: any) => ({
+          ...item,
+          image: item.image_url || item.image || 'https://via.placeholder.com/300x300?text=No+Image',
+        }));
+        setSavedItems(mappedItems);
+      } catch (err) {
+        console.error('Failed to fetch saved items:', err);
+        setError('Failed to load saved items. Please try again.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    loadSavedItems();
+  }, [fetchSavedItems]);
 
   /**
    * Handle removing a single saved item
    */
-  const handleRemoveSavedItem = useCallback((itemId: string) => {
+  const handleRemoveSavedItem = useCallback(async (itemId: string) => {
+    // Optimistically remove from UI
     setSavedItems((prevItems) =>
-      prevItems.filter((item) => item.id !== itemId)
+      prevItems.filter((item) => String(item.id) !== String(itemId))
     );
 
-    // TODO: Call remove saved item API endpoint
-    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-    fetch(`${apiUrl}/api/v1/saved-items/${itemId}`, { method: 'DELETE' })
-      .catch((err) => {
-        console.error('Error removing item:', err);
-        // Re-fetch items on error
-        window.location.reload();
-      });
-  }, []);
+    try {
+      await deleteSavedItem(Number(itemId));
+    } catch (err) {
+      console.error('Error removing item:', err);
+      // Refresh to restore state on error
+      const items = await fetchSavedItems();
+      setSavedItems(items.map((item: any) => ({
+        ...item,
+        image: item.image_url || item.image || 'https://via.placeholder.com/300x300?text=No+Image',
+      })));
+    }
+  }, [deleteSavedItem, fetchSavedItems]);
 
   /**
    * Handle removing multiple saved items
    */
-  const handleRemoveMultiple = useCallback((itemIds: string[]) => {
+  const handleRemoveMultiple = useCallback(async (itemIds: string[]) => {
+    // Optimistically remove from UI
     setSavedItems((prevItems) =>
-      prevItems.filter((item) => !itemIds.includes(item.id))
+      prevItems.filter((item) => !itemIds.includes(String(item.id)))
     );
 
-    // TODO: Call bulk remove API endpoint
-    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-    fetch(`${apiUrl}/api/v1/saved-items/bulk-remove`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ itemIds }),
-    })
-      .catch((err) => {
-        console.error('Error removing items:', err);
-        // Re-fetch items on error
-        window.location.reload();
-      });
-  }, []);
+    try {
+      // Delete each item
+      await Promise.all(itemIds.map(id => deleteSavedItem(Number(id))));
+    } catch (err) {
+      console.error('Error removing items:', err);
+      // Refresh to restore state on error
+      const items = await fetchSavedItems();
+      setSavedItems(items.map((item: any) => ({
+        ...item,
+        image: item.image_url || item.image || 'https://via.placeholder.com/300x300?text=No+Image',
+      })));
+    }
+  }, [deleteSavedItem, fetchSavedItems]);
 
   /**
    * Handle comparing selected items
@@ -158,6 +143,21 @@ const SavedPage: React.FC<SavedPageProps> = () => {
       setTimeout(() => setPushSuccess(null), 5000);
     }
   }, [pushProduct, clearError]);
+
+  if (isLoading) {
+    return (
+      <Page title="Saved Items">
+        <Card>
+          <Box padding="600">
+            <BlockStack gap="300" align="center">
+              <Spinner size="large" />
+              <Text as="p">Loading saved items...</Text>
+            </BlockStack>
+          </Box>
+        </Card>
+      </Page>
+    );
+  }
 
   if (error) {
     return (
