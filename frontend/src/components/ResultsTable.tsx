@@ -32,6 +32,10 @@ const sourceLabels: Record<string, string> = {
   'cj-dropshipping': 'CJ Dropship',
 };
 
+// View mode options
+type ViewMode = 'table' | 'cards';
+type ColumnCount = 1 | 2 | 3 | 4;
+
 const ResultsTable: React.FC<ResultsTableProps> = ({
   results,
   savedProductUrls = new Set(),
@@ -41,6 +45,8 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
   onViewDetails,
 }) => {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [viewMode, setViewMode] = useState<ViewMode>('cards');
+  const [columnCount, setColumnCount] = useState<ColumnCount>(4);
 
   const toggleSelect = (id: string) => {
     setSelectedIds((prev) => {
@@ -91,7 +97,57 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
 
   return (
     <div className="results-table-container">
-      {/* Desktop Table View - Hidden on mobile, visible on md+ */}
+      {/* View Mode Controls */}
+      <div className="results-view-controls">
+        <div className="results-view-controls__left">
+          <button 
+            className={`results-view-controls__btn ${viewMode === 'cards' ? 'results-view-controls__btn--active' : ''}`}
+            onClick={() => setViewMode('cards')}
+            title="Card View"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <rect x="3" y="3" width="7" height="7" rx="1" />
+              <rect x="14" y="3" width="7" height="7" rx="1" />
+              <rect x="3" y="14" width="7" height="7" rx="1" />
+              <rect x="14" y="14" width="7" height="7" rx="1" />
+            </svg>
+            Cards
+          </button>
+          <button 
+            className={`results-view-controls__btn ${viewMode === 'table' ? 'results-view-controls__btn--active' : ''}`}
+            onClick={() => setViewMode('table')}
+            title="Table View"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <line x1="3" y1="6" x2="21" y2="6" />
+              <line x1="3" y1="12" x2="21" y2="12" />
+              <line x1="3" y1="18" x2="21" y2="18" />
+            </svg>
+            Table
+          </button>
+        </div>
+        
+        {viewMode === 'cards' && (
+          <div className="results-view-controls__right">
+            <span className="results-view-controls__label">Columns:</span>
+            <div className="results-view-controls__columns">
+              {([1, 2, 3, 4] as ColumnCount[]).map((num) => (
+                <button
+                  key={num}
+                  className={`results-view-controls__col-btn ${columnCount === num ? 'results-view-controls__col-btn--active' : ''}`}
+                  onClick={() => setColumnCount(num)}
+                  title={`${num} column${num > 1 ? 's' : ''}`}
+                >
+                  {num}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Desktop Table View */}
+      {viewMode === 'table' && (
       <div className="results-table results-table--desktop">
         <table>
           <thead>
@@ -228,9 +284,14 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
           </tbody>
         </table>
       </div>
+      )}
 
-      {/* Mobile Card View - Visible on mobile, hidden on md+ */}
-      <div className="results-cards results-cards--mobile">
+      {/* Card View - Responsive grid with adjustable columns */}
+      {viewMode === 'cards' && (
+      <div 
+        className="results-cards-grid"
+        style={{ '--column-count': columnCount } as React.CSSProperties}
+      >
         {results.map((product) => {
           const isSaved = savedProductUrls.has(product.id) || product.isSaved;
           const isSaving = savingProductId === product.id || product.isSaving;
@@ -305,19 +366,19 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
                     onClick={() => onSave?.(product)}
                     disabled={isSaving || isSaved}
                   >
-                    {isSaving ? 'Saving...' : isSaved ? '✓ Saved' : '♡ Save'}
+                    {isSaving ? '...' : isSaved ? '✓' : '♡'}
                   </button>
                   <button
                     className="results-card__action-btn results-card__action-btn--compare"
                     onClick={() => onCompare?.(product)}
                   >
-                    ⚖ Compare
+                    ⚖
                   </button>
                   <button
                     className="results-card__action-btn results-card__action-btn--view"
                     onClick={() => onViewDetails?.(product)}
                   >
-                    View →
+                    →
                   </button>
                 </div>
               </div>
@@ -325,6 +386,7 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
           );
         })}
       </div>
+      )}
     </div>
   );
 };
