@@ -154,15 +154,10 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         : 0,
   };
 
-  return new Response(
-    JSON.stringify({
-      stats,
-      captures: capturesWithRevenue,
-    }),
-    {
-      headers: { "Content-Type": "application/json" },
-    }
-  );
+  return {
+    stats,
+    captures: capturesWithRevenue,
+  };
 };
 
 export default function AttributionAnalytics() {

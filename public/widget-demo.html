@@ -299,7 +299,7 @@
     function getSessionId() {
       let sessionId = sessionStorage.getItem('sessionId');
       if (!sessionId) {
-        sessionId = 'session-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+        sessionId = 'session-' + Date.now() + '-' + Math.random().toString(36).substring(2, 11);
         sessionStorage.setItem('sessionId', sessionId);
       }
       return sessionId;
@@ -323,7 +323,7 @@
         await new Promise(resolve => setTimeout(resolve, 1000));
         
         // Simulated response
-        const discountCode = 'EMAIL-' + Math.random().toString(36).substr(2, 8).toUpperCase();
+        const discountCode = 'EMAIL-' + Math.random().toString(36).substring(2, 10).toUpperCase();
         
         resultDiv.className = 'result-message success';
         resultDiv.innerHTML = `
@@ -379,7 +379,7 @@
           <strong>Welcome!</strong> You're now subscribed.
           <div style="margin-top: 10px; font-size: 0.9em;">
             We're tracking your journey to attribute any future purchases.
-            Session ID: ${sessionId.substr(0, 20)}...
+            Session ID: ${sessionId.substring(0, 20)}...
           </div>
         `;
         

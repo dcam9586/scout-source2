@@ -65,39 +65,50 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
     // Event-based attribution: match by customer email, session, or browser fingerprint
     if (!emailCaptureId && (customerEmail || sessionId || browserFingerprint)) {
-      const emailCapture = await prisma.emailCapture.findFirst({
-        where: {
-          shop,
-          attributionMethod: "event",
-          OR: [
-            customerEmail ? { email: customerEmail } : {},
-            sessionId ? { sessionId } : {},
-            browserFingerprint ? { browserFingerprint } : {},
-          ].filter(condition => Object.keys(condition).length > 0),
-        },
-        orderBy: {
-          createdAt: "desc",
-        },
-      });
+      // Build OR conditions only for provided values
+      const orConditions = [];
+      if (customerEmail) {
+        orConditions.push({ email: customerEmail });
+      }
+      if (sessionId) {
+        orConditions.push({ sessionId });
+      }
+      if (browserFingerprint) {
+        orConditions.push({ browserFingerprint });
+      }
 
-      if (emailCapture) {
-        emailCaptureId = emailCapture.id;
-        
-        // Track the order_placed event
-        await prisma.attributionEvent.create({
-          data: {
-            emailCaptureId: emailCapture.id,
-            eventType: "order_placed",
-            sessionId,
-            browserFingerprint,
-            metadata: JSON.stringify({
-              orderId,
-              totalPrice,
-              currency,
-              timestamp: new Date().toISOString(),
-            }),
+      // Only query if we have at least one condition
+      if (orConditions.length > 0) {
+        const emailCapture = await prisma.emailCapture.findFirst({
+          where: {
+            shop,
+            attributionMethod: "event",
+            OR: orConditions,
+          },
+          orderBy: {
+            createdAt: "desc",
           },
         });
+
+        if (emailCapture) {
+          emailCaptureId = emailCapture.id;
+          
+          // Track the order_placed event
+          await prisma.attributionEvent.create({
+            data: {
+              emailCaptureId: emailCapture.id,
+              eventType: "order_placed",
+              sessionId,
+              browserFingerprint,
+              metadata: JSON.stringify({
+                orderId,
+                totalPrice,
+                currency,
+                timestamp: new Date().toISOString(),
+              }),
+            },
+          });
+        }
       }
     }
 
