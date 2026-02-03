@@ -1,16 +1,39 @@
 # SourceScout - Product Sourcing App for Shopify
 
-A comprehensive Shopify app that helps store owners scout for products from Alibaba and Made-in-China, providing price comparisons, supplier information, and product saving capabilities.
+A comprehensive Shopify app that helps store owners scout for products from Alibaba, Made-in-China, and CJ Dropshipping, providing price comparisons, supplier information, and product saving capabilities.
+
+## 🌐 Live Demo
+
+- **Frontend**: [sourcescout-frontend.up.railway.app](https://sourcescout-frontend.up.railway.app)
+- **Backend API**: [sourcescout-backend.up.railway.app](https://sourcescout-backend.up.railway.app)
+- **Documentation**: [GitHub Wiki](https://github.com/dcam9586/scout-source2/wiki)
 
 ## Overview
 
 **SourceScout** is a full-stack application designed to streamline the product sourcing process for Shopify store owners. It enables users to:
 
-- 🔍 **Search** across Alibaba and Made-in-China simultaneously
+- 🔍 **Search** across Alibaba, Made-in-China, and CJ Dropshipping simultaneously
 - 💾 **Save** products with notes and descriptions
 - ⚖️ **Compare** products from multiple suppliers side-by-side
 - 📊 **Track** supplier ratings, MOQ, and pricing
-- 🚀 **Upgrade** to premium for unlimited searches
+- 🛒 **Push** products directly to your Shopify store
+- 🚀 **Upgrade** to premium for unlimited searches and advanced filters
+
+## 💰 Subscription Tiers
+
+| Feature | Free | Starter ($19/mo) | Pro ($49/mo) | Enterprise ($149/mo) |
+|---------|:----:|:----------------:|:------------:|:--------------------:|
+| Searches/month | 5 | 100 | Unlimited | Unlimited |
+| Results/search | 10 | 25 | 100 | Unlimited |
+| Saved items | 25 | 100 | 500 | Unlimited |
+| Push to Shopify | ❌ | 10/mo | 50/mo | Unlimited |
+| **See source names** | ❌ | ❌ | ✅ | ✅ |
+| All supplier sources | ❌ | ❌ | ✅ | ✅ |
+| HS Code search | ❌ | ❌ | ✅ | ✅ |
+| Certification filters | ❌ | ❌ | ✅ | ✅ |
+| Export to CSV | ❌ | ❌ | ✅ | ✅ |
+| API access | ❌ | ❌ | ❌ | ✅ |
+| Support | Community | Email | Priority | Dedicated |
 
 ## Tech Stack
 
@@ -194,10 +217,17 @@ JWT_SECRET=your_jwt_secret_key_here
 
 ## Rate Limiting
 
-- **Free Tier**: 10 searches per month
-- **Premium Tier**: Unlimited searches
+Rate limits are enforced per subscription tier:
 
-Rate limits are tracked in Redis and reset monthly. Premium users can upgrade through Shopify billing API (to be implemented).
+| Tier | Searches/Month | Results/Search |
+|------|----------------|----------------|
+| Guest | 3 | 5 |
+| Free | 5 | 10 |
+| Starter | 100 | 25 |
+| Pro | Unlimited | 100 |
+| Enterprise | Unlimited | Unlimited |
+
+Rate limits are tracked in Redis and reset monthly on the billing date.
 
 ## Database Schema
 
@@ -266,18 +296,30 @@ CREATE TABLE comparisons (
 
 ## Next Steps / TODO
 
+- [x] ~~Implement CJ Dropshipping API integration~~ ✅
+- [x] ~~Create subscription tier system~~ ✅
+- [x] ~~Build feature gating for premium features~~ ✅
+- [x] ~~Create mobile-responsive design~~ ✅
+- [x] ~~Implement product push to Shopify~~ ✅
+- [ ] Implement Stripe/PayPal payment processing
 - [ ] Implement Alibaba API integration for product search
 - [ ] Implement Made-in-China web scraping service
 - [ ] Build comparison engine to match products across sources
-- [ ] Create detailed product comparison UI
-- [ ] Implement Shopify billing API for premium subscriptions
 - [ ] Add email notifications for new supplier deals
 - [ ] Build admin dashboard for app owner analytics
-- [ ] Implement product import to Shopify catalog
 - [ ] Add supplier rating aggregation
-- [ ] Create mobile-responsive design
-- [ ] Add support for multiple supplier marketplaces
 - [ ] Implement bulk search and import features
+
+## 📚 Documentation
+
+Full documentation is available on the [GitHub Wiki](https://github.com/dcam9586/scout-source2/wiki):
+
+- [Getting Started](https://github.com/dcam9586/scout-source2/wiki/Getting-Started)
+- [Subscription Tiers](https://github.com/dcam9586/scout-source2/wiki/Subscription-Tiers)
+- [Features](https://github.com/dcam9586/scout-source2/wiki/Features)
+- [API Reference](https://github.com/dcam9586/scout-source2/wiki/API-Reference)
+- [Architecture](https://github.com/dcam9586/scout-source2/wiki/Architecture)
+- [Deployment](https://github.com/dcam9586/scout-source2/wiki/Deployment)
 
 ## Contributing
 
@@ -289,4 +331,6 @@ MIT
 
 ## Support
 
-For issues or questions, please refer to the individual README files in `backend/` and `frontend/` directories.
+- **Documentation**: [GitHub Wiki](https://github.com/dcam9586/scout-source2/wiki)
+- **Issues**: [GitHub Issues](https://github.com/dcam9586/scout-source2/issues)
+- **Email**: Available for Starter+ subscribers
