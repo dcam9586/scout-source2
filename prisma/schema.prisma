@@ -32,3 +32,59 @@ model Session {
   refreshToken        String?
   refreshTokenExpires DateTime?
 }
+
+model EmailCapture {
+  id                String   @id @default(uuid())
+  shop              String
+  email             String
+  sessionId         String?
+  browserFingerprint String?
+  ipAddress         String?
+  userAgent         String?
+  referrer          String?
+  discountCode      String?  @unique
+  attributionMethod String   // "code" or "event"
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  orders            Order[]
+  events            AttributionEvent[]
+  
+  @@index([shop])
+  @@index([email])
+  @@index([discountCode])
+}
+
+model Order {
+  id              String   @id @default(uuid())
+  shop            String
+  orderId         String   // Shopify order ID
+  customerEmail   String?
+  discountCode    String?
+  totalPrice      Float
+  currency        String
+  orderNumber     String?
+  createdAt       DateTime @default(now())
+  
+  emailCaptureId  String?
+  emailCapture    EmailCapture? @relation(fields: [emailCaptureId], references: [id])
+  
+  @@index([shop])
+  @@index([orderId])
+  @@index([customerEmail])
+  @@index([discountCode])
+}
+
+model AttributionEvent {
+  id              String   @id @default(uuid())
+  emailCaptureId  String
+  emailCapture    EmailCapture @relation(fields: [emailCaptureId], references: [id])
+  eventType       String   // "page_view", "add_to_cart", "checkout_started", "order_placed"
+  sessionId       String?
+  browserFingerprint String?
+  metadata        String?  // JSON string for additional data
+  createdAt       DateTime @default(now())
+  
+  @@index([emailCaptureId])
+  @@index([sessionId])
+}
