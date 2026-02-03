@@ -619,6 +619,7 @@ tbody tr:hover {
   line-height: 1.1;
   margin-bottom: 1.5rem;
   letter-spacing: -0.03em;
+  color: #f8f8ff; /* Ghost white */
 }
 
 @media (max-width: 600px) {
@@ -666,27 +667,33 @@ tbody tr:hover {
 
 .hero__search-icon {
   position: absolute;
-  left: 1rem;
+  left: 1.25rem;
   top: 50%;
   transform: translateY(-50%);
   width: 20px;
   height: 20px;
   color: #64748b;
+  pointer-events: none;
 }
 
 .hero__search-input {
   width: 100%;
-  padding: 1rem 1rem 1rem 3rem;
+  padding: 1rem 1rem 1rem 4rem;
   font-size: 1rem;
   border: 2px solid #334155;
   border-radius: 12px;
   background: #1e293b;
   color: #fff;
   transition: border-color 0.2s ease;
+  box-sizing: border-box;
 }
 
 .hero__search-input::placeholder {
   color: #64748b;
+}
+
+.hero__search-input--has-text {
+  padding-left: 1.25rem;
 }
 
 .hero__search-input:focus {

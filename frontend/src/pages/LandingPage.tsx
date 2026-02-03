@@ -4,57 +4,60 @@
  * Shows teaser results to encourage sign-up conversion
  */
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Footer from '../components/Footer';
 
-// Mock teaser results for demonstration
-const TEASER_RESULTS = [
-  {
-    id: '1',
-    title: 'Premium Yoga Mat - Extra Thick Non-Slip',
-    image: 'https://via.placeholder.com/300x300?text=Yoga+Mat',
-    price: 4.50,
-    supplier: 'Guangzhou Sports Co.',
-    moq: 50,
-    rating: 4.8,
-    source: 'alibaba',
-    isBlurred: false,
-  },
-  {
-    id: '2',
-    title: 'Eco-Friendly Cork Yoga Mat with Strap',
-    image: 'https://via.placeholder.com/300x300?text=Cork+Mat',
-    price: 8.20,
-    supplier: 'Shenzhen Wellness Ltd.',
-    moq: 30,
-    rating: 4.6,
-    source: 'made-in-china',
-    isBlurred: true,
-  },
-  {
-    id: '3',
-    title: 'Professional Yoga Mat 6mm TPE Material',
-    image: 'https://via.placeholder.com/300x300?text=TPE+Mat',
-    price: 3.80,
-    supplier: 'Yiwu Fitness Factory',
-    moq: 100,
-    rating: 4.5,
-    source: 'cj-dropshipping',
-    isBlurred: true,
-  },
-  {
-    id: '4',
-    title: 'Foldable Travel Yoga Mat Lightweight',
-    image: 'https://via.placeholder.com/300x300?text=Travel+Mat',
-    price: 5.99,
-    supplier: 'Beijing Active Gear',
-    moq: 25,
-    rating: 4.7,
-    source: 'alibaba',
-    isBlurred: true,
-  },
-];
+// Generate dynamic teaser results based on search query
+const generateTeaserResults = (query: string) => {
+  // Use picsum.photos for reliable placeholder images
+  return [
+    {
+      id: '1',
+      title: `${query} - Premium Quality Wholesale`,
+      image: 'https://picsum.photos/seed/product1/300/300',
+      price: 4.50 + Math.random() * 10,
+      supplier: 'Guangzhou Trading Co.',
+      moq: 50,
+      rating: 4.8,
+      source: 'alibaba',
+      isBlurred: false,
+    },
+    {
+      id: '2',
+      title: `${query} - Factory Direct Supply`,
+      image: 'https://picsum.photos/seed/product2/300/300',
+      price: 8.20 + Math.random() * 15,
+      supplier: 'Shenzhen Electronics Ltd.',
+      moq: 30,
+      rating: 4.6,
+      source: 'made-in-china',
+      isBlurred: true,
+    },
+    {
+      id: '3',
+      title: `${query} - OEM/ODM Available`,
+      image: 'https://picsum.photos/seed/product3/300/300',
+      price: 3.80 + Math.random() * 8,
+      supplier: 'Yiwu Wholesale Factory',
+      moq: 100,
+      rating: 4.5,
+      source: 'cj-dropshipping',
+      isBlurred: true,
+    },
+    {
+      id: '4',
+      title: `${query} - Fast Shipping Dropship`,
+      image: 'https://picsum.photos/seed/product4/300/300',
+      price: 5.99 + Math.random() * 12,
+      supplier: 'Beijing Import Export',
+      moq: 25,
+      rating: 4.7,
+      source: 'alibaba',
+      isBlurred: true,
+    },
+  ];
+};
 
 interface LandingPageProps {
   onLoginClick: () => void;
@@ -65,12 +68,19 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick }) => {
   const [showTeaser, setShowTeaser] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
+  const [submittedQuery, setSubmittedQuery] = useState('');
+
+  // Generate teaser results based on the submitted query
+  const teaserResults = useMemo(() => {
+    return submittedQuery ? generateTeaserResults(submittedQuery) : [];
+  }, [submittedQuery]);
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!searchQuery.trim()) return;
 
     setIsSearching(true);
+    setSubmittedQuery(searchQuery.trim());
     
     // Simulate API delay for realistic feel
     await new Promise(resolve => setTimeout(resolve, 1500));
@@ -131,19 +141,21 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick }) => {
             {/* Search Bar */}
             <form onSubmit={handleSearch} className="hero__search">
               <div className="hero__search-input-wrapper">
-                <svg 
-                  className="hero__search-icon" 
-                  viewBox="0 0 24 24" 
-                  fill="none" 
-                  stroke="currentColor" 
-                  strokeWidth="2"
-                >
-                  <circle cx="11" cy="11" r="8" />
-                  <path d="m21 21-4.35-4.35" />
-                </svg>
+                {!searchQuery && (
+                  <svg 
+                    className="hero__search-icon" 
+                    viewBox="0 0 24 24" 
+                    fill="none" 
+                    stroke="currentColor" 
+                    strokeWidth="2"
+                  >
+                    <circle cx="11" cy="11" r="8" />
+                    <path d="m21 21-4.35-4.35" />
+                  </svg>
+                )}
                 <input
                   type="text"
-                  className="hero__search-input"
+                  className={`hero__search-input ${searchQuery ? 'hero__search-input--has-text' : ''}`}
                   placeholder='Try "Yoga Mat", "Wireless Earbuds", or "Phone Case"...'
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
@@ -208,12 +220,12 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick }) => {
         <section className="teaser-results" id="teaser-results">
           <div className="teaser-results__container">
             <div className="teaser-results__header">
-              <h2>Found 50+ suppliers for "{searchQuery}"</h2>
+              <h2>Found 50+ suppliers for "{submittedQuery}"</h2>
               <p>Here's a preview of what you can find:</p>
             </div>
             
             <div className="teaser-results__grid">
-              {TEASER_RESULTS.map((product) => (
+              {teaserResults.map((product) => (
                 <div 
                   key={product.id} 
                   className={`teaser-card ${product.isBlurred ? 'teaser-card--blurred' : ''}`}

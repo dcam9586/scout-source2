@@ -82,11 +82,13 @@ const ProductCard: React.FC<ProductCardProps> = ({
     'cj-dropshipping': 'CJ DROP',
   };
 
-  const handleSave = () => {
+  const handleSave = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent card click
     onSave?.({ id, title, image, price, currency, supplier, moq, rating, reviews, source, freeShipping, deliveryDays, warehouseStock });
   };
 
-  const handleCompare = () => {
+  const handleCompare = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent card click
     onCompare?.({ id, title, image, price, currency, supplier, moq, rating, reviews, source, freeShipping, deliveryDays, warehouseStock });
   };
 
@@ -94,8 +96,20 @@ const ProductCard: React.FC<ProductCardProps> = ({
     onViewDetails?.({ id, title, image, price, currency, supplier, moq, rating, reviews, source, freeShipping, deliveryDays, warehouseStock });
   };
 
+  // Make entire card clickable to view details
+  const handleCardClick = () => {
+    onViewDetails?.({ id, title, image, price, currency, supplier, moq, rating, reviews, source, freeShipping, deliveryDays, warehouseStock });
+  };
+
   return (
-    <div className="product-card" role="article" aria-label={`Product: ${title}`}>
+    <div 
+      className="product-card" 
+      role="article" 
+      aria-label={`Product: ${title}`}
+      onClick={handleCardClick}
+      tabIndex={0}
+      onKeyDown={(e) => e.key === 'Enter' && handleCardClick()}
+    >
       {/* Product Image */}
       <div className="product-card__image-container">
         {image ? (
@@ -116,6 +130,25 @@ const ProductCard: React.FC<ProductCardProps> = ({
         >
           {sourceLabels[source] || source.toUpperCase()}
         </span>
+
+        {/* Floating Heart Save Icon */}
+        <button
+          className={`product-card__heart-btn ${isSaved ? 'product-card__heart-btn--saved' : ''}`}
+          onClick={handleSave}
+          disabled={isSaved || isSaving}
+          aria-label={isSaved ? `${title} is saved` : `Save ${title}`}
+          title={isSaved ? 'Saved to your list' : 'Save for later'}
+        >
+          {isSaving ? (
+            <svg className="product-card__heart-loading" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="12" cy="12" r="10" />
+            </svg>
+          ) : (
+            <svg viewBox="0 0 24 24" fill={isSaved ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2">
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+            </svg>
+          )}
+        </button>
         
         {/* CJ Dropshipping badges */}
         {source === 'cj-dropshipping' && (
@@ -253,30 +286,29 @@ const ProductCard: React.FC<ProductCardProps> = ({
       {!hideActions && (
         <div className="product-card__actions">
           <button
-            className="product-card__action-btn product-card__action-btn--secondary"
-            onClick={handleViewDetails}
+            className="product-card__action-btn product-card__action-btn--tertiary"
+            onClick={(e) => { e.stopPropagation(); handleViewDetails(); }}
             aria-label={`View details for ${title}`}
             title="View full product details"
           >
-            View Details
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+              <circle cx="12" cy="12" r="3" />
+            </svg>
+            Details
           </button>
           <button
-            className="product-card__action-btn product-card__action-btn--secondary"
+            className="product-card__action-btn product-card__action-btn--primary"
             onClick={handleCompare}
             aria-label={`Compare ${title}`}
             title="Add to comparison"
           >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
+              <line x1="18" y1="20" x2="18" y2="10" />
+              <line x1="12" y1="20" x2="12" y2="4" />
+              <line x1="6" y1="20" x2="6" y2="14" />
+            </svg>
             Compare
-          </button>
-          <button
-            className={`product-card__action-btn ${isSaved ? 'product-card__action-btn--saved' : 'product-card__action-btn--primary'}`}
-            onClick={handleSave}
-            disabled={isSaved || isSaving}
-            aria-label={isSaved ? `${title} is saved` : `Save ${title}`}
-            title={isSaved ? 'Already saved' : 'Save to your list'}
-            style={isSaved ? { backgroundColor: '#10b981', cursor: 'default' } : isSaving ? { opacity: 0.7 } : {}}
-          >
-            {isSaving ? 'Saving...' : isSaved ? '✓ Saved' : 'Save'}
           </button>
         </div>
       )}

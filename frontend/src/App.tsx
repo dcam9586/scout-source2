@@ -24,6 +24,8 @@ const PushedProductsPage = lazy(() => import('./components/PushedProductsPage'))
 const LandingPage = lazy(() => import('./pages/LandingPage'));
 const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'));
 const TermsOfService = lazy(() => import('./pages/TermsOfService'));
+const AccountPage = lazy(() => import('./pages/AccountPage'));
+const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 
 // Loading fallback component
 const PageLoader: React.FC = () => (
@@ -99,7 +101,7 @@ const App: React.FC = () => {
   return (
     <AppProvider i18n={{}}>
       <Router>
-        <Navigation />
+        <Navigation onLoginClick={handleLoginClick} />
         <main id="main-content" role="main" aria-label="SourceScout main content">
           <Suspense fallback={<PageLoader />}>
             <Routes>
@@ -108,7 +110,9 @@ const App: React.FC = () => {
               <Route path="/saved" element={<SavedPage />} />
               <Route path="/comparisons" element={<ComparisonsPage />} />
               <Route path="/pushed" element={<PushedProductsPage />} />
-              <Route path="/settings" element={<ApiKeysPage />} />
+              <Route path="/account" element={<AccountPage />} />
+              <Route path="/settings" element={<SettingsPage />} />
+              <Route path="/settings/api-keys" element={<ApiKeysPage />} />
               <Route path="/privacy" element={<PrivacyPolicy />} />
               <Route path="/terms" element={<TermsOfService />} />
               <Route path="*" element={<Navigate to="/" replace />} />
