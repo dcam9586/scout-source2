@@ -4,18 +4,29 @@
  * Shows teaser results to encourage sign-up conversion
  */
 
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Footer from '../components/Footer';
 
-// Generate dynamic teaser results based on search query
-const generateTeaserResults = (query: string) => {
-  // Use picsum.photos for reliable placeholder images
+interface TeaserProduct {
+  id: string;
+  title: string;
+  image: string;
+  price: number;
+  supplier: string;
+  moq: number;
+  rating: number;
+  source: string;
+  isBlurred: boolean;
+}
+
+// Fallback teaser results when API fails
+const generateFallbackResults = (query: string): TeaserProduct[] => {
   return [
     {
       id: '1',
       title: `${query} - Premium Quality Wholesale`,
-      image: 'https://picsum.photos/seed/product1/300/300',
+      image: `https://source.unsplash.com/300x300/?${encodeURIComponent(query)},product`,
       price: 4.50 + Math.random() * 10,
       supplier: 'Guangzhou Trading Co.',
       moq: 50,
@@ -26,7 +37,7 @@ const generateTeaserResults = (query: string) => {
     {
       id: '2',
       title: `${query} - Factory Direct Supply`,
-      image: 'https://picsum.photos/seed/product2/300/300',
+      image: `https://source.unsplash.com/300x300/?${encodeURIComponent(query)},wholesale`,
       price: 8.20 + Math.random() * 15,
       supplier: 'Shenzhen Electronics Ltd.',
       moq: 30,
@@ -37,7 +48,7 @@ const generateTeaserResults = (query: string) => {
     {
       id: '3',
       title: `${query} - OEM/ODM Available`,
-      image: 'https://picsum.photos/seed/product3/300/300',
+      image: `https://source.unsplash.com/300x300/?${encodeURIComponent(query)},factory`,
       price: 3.80 + Math.random() * 8,
       supplier: 'Yiwu Wholesale Factory',
       moq: 100,
@@ -48,7 +59,7 @@ const generateTeaserResults = (query: string) => {
     {
       id: '4',
       title: `${query} - Fast Shipping Dropship`,
-      image: 'https://picsum.photos/seed/product4/300/300',
+      image: `https://source.unsplash.com/300x300/?${encodeURIComponent(query)},shipping`,
       price: 5.99 + Math.random() * 12,
       supplier: 'Beijing Import Export',
       moq: 25,
@@ -57,6 +68,87 @@ const generateTeaserResults = (query: string) => {
       isBlurred: true,
     },
   ];
+};
+
+// Fetch real products from backend API for guest preview
+const fetchGuestPreviewResults = async (query: string): Promise<TeaserProduct[]> => {
+  const apiUrl = import.meta.env.VITE_API_URL || 'https://backend-production-b4b9d.up.railway.app';
+  
+  try {
+    const response = await fetch(`${apiUrl}/api/v1/search`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        query,
+        sources: ['alibaba', 'cj-dropshipping'],
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Search API failed');
+    }
+
+    const data = await response.json();
+    
+    // Combine results from all sources
+    const allProducts: TeaserProduct[] = [];
+    
+    // Process Alibaba results
+    if (data.results?.alibaba?.length > 0) {
+      data.results.alibaba.slice(0, 2).forEach((product: any, index: number) => {
+        allProducts.push({
+          id: `alibaba-${index}`,
+          title: product.title || product.name || `${query} - Alibaba Product`,
+          image: product.image_url || product.imageUrl || product.image || `https://source.unsplash.com/300x300/?${encodeURIComponent(query)}`,
+          price: parseFloat(product.price) || 5.99,
+          supplier: product.supplier || product.supplierName || 'Verified Supplier',
+          moq: parseInt(product.moq) || product.minOrderQuantity || 50,
+          rating: parseFloat(product.rating) || 4.5,
+          source: 'alibaba',
+          isBlurred: index > 0, // First result is visible, rest are blurred
+        });
+      });
+    }
+    
+    // Process CJ Dropshipping results
+    if (data.results?.['cj-dropshipping']?.length > 0) {
+      data.results['cj-dropshipping'].slice(0, 2).forEach((product: any, index: number) => {
+        allProducts.push({
+          id: `cj-${index}`,
+          title: product.title || product.name || product.productNameEn || `${query} - CJ Product`,
+          image: product.image_url || product.imageUrl || product.productImage || `https://source.unsplash.com/300x300/?${encodeURIComponent(query)}`,
+          price: parseFloat(product.price) || parseFloat(product.sellPrice) || 8.99,
+          supplier: 'CJ Dropshipping',
+          moq: 1, // CJ typically has no MOQ
+          rating: 4.6,
+          source: 'cj-dropshipping',
+          isBlurred: true, // All CJ results are blurred for guests
+        });
+      });
+    }
+    
+    // If we got real results, return them
+    if (allProducts.length > 0) {
+      // Ensure at least 4 results for good display
+      while (allProducts.length < 4) {
+        const fallback = generateFallbackResults(query);
+        allProducts.push({
+          ...fallback[allProducts.length % fallback.length],
+          id: `fallback-${allProducts.length}`,
+          isBlurred: true,
+        });
+      }
+      return allProducts.slice(0, 4);
+    }
+    
+    // Fallback to generated results if no real results
+    return generateFallbackResults(query);
+  } catch (error) {
+    console.error('Guest search failed:', error);
+    return generateFallbackResults(query);
+  }
 };
 
 interface LandingPageProps {
@@ -69,11 +161,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick }) => {
   const [showModal, setShowModal] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [submittedQuery, setSubmittedQuery] = useState('');
-
-  // Generate teaser results based on the submitted query
-  const teaserResults = useMemo(() => {
-    return submittedQuery ? generateTeaserResults(submittedQuery) : [];
-  }, [submittedQuery]);
+  const [teaserResults, setTeaserResults] = useState<TeaserProduct[]>([]);
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -82,8 +170,9 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick }) => {
     setIsSearching(true);
     setSubmittedQuery(searchQuery.trim());
     
-    // Simulate API delay for realistic feel
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    // Fetch real products from the API
+    const results = await fetchGuestPreviewResults(searchQuery.trim());
+    setTeaserResults(results);
     
     setIsSearching(false);
     setShowTeaser(true);
