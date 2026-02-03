@@ -5,6 +5,8 @@
  */
 
 import React from 'react';
+import useAppStore from '../store/appStore';
+import { getTierConfig, SubscriptionTier } from '../config/subscriptions';
 import '../styles/components.css';
 
 export interface ProductCardProps {
@@ -68,6 +70,13 @@ const ProductCard: React.FC<ProductCardProps> = ({
   onCompare,
   onViewDetails,
 }) => {
+  // Get user's subscription tier to determine if we should show source names
+  const subscription = useAppStore((state) => state.subscription);
+  const showUpgradeModal = useAppStore((state) => state.showUpgradeModal);
+  const userTier: SubscriptionTier = (subscription?.tier as SubscriptionTier) || 'free';
+  const tierConfig = getTierConfig(userTier);
+  const canShowSources = tierConfig.features.showSourceNames;
+
   const sourceColors: Record<string, string> = {
     alibaba: '#E62E04',
     'made-in-china': '#2563EB',
@@ -123,13 +132,28 @@ const ProductCard: React.FC<ProductCardProps> = ({
             </svg>
           </div>
         )}
-        <span
-          className="product-card__source-badge"
-          style={{ backgroundColor: sourceColors[source] }}
-          aria-label={`Source: ${source.replace('_', ' ')}`}
-        >
-          {sourceLabels[source] || source.toUpperCase()}
-        </span>
+        {canShowSources ? (
+          <span
+            className="product-card__source-badge"
+            style={{ backgroundColor: sourceColors[source] }}
+            aria-label={`Source: ${source.replace('_', ' ')}`}
+          >
+            {sourceLabels[source] || source.toUpperCase()}
+          </span>
+        ) : (
+          <span
+            className="product-card__source-badge product-card__source-badge--locked"
+            style={{ backgroundColor: '#9CA3AF', cursor: 'pointer' }}
+            onClick={(e) => {
+              e.stopPropagation();
+              showUpgradeModal('showSourceNames');
+            }}
+            aria-label="Upgrade to see source"
+            title="Upgrade to Pro to see supplier source"
+          >
+            🔒 PRO
+          </span>
+        )}
 
         {/* Floating Heart Save Icon */}
         <button

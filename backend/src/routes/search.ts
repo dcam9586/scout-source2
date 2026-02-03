@@ -1,11 +1,24 @@
 import express, { Request, Response } from 'express';
 import { SearchLog } from '../models/SearchLog';
-import { authenticateToken, AuthRequest } from '../middleware/auth';
+import { authenticateToken, AuthRequest, optionalAuth } from '../middleware/auth';
 import { checkRateLimit } from '../middleware/rateLimit';
 import { createLogger } from '../utils/logger';
 import { getAlibabaScraper } from '../services/alibaba-scraper';
 import { getMadeInChinaScraper } from '../services/made-in-china-scraper';
 import { getCJDropshippingService } from '../services/cj-dropshipping';
+import { 
+  filterSourcesByTier, 
+  checkLimit, 
+  incrementUsage, 
+  getUserUsage,
+  attachSubscriptionInfo 
+} from '../middleware/subscription';
+import { 
+  SubscriptionTier, 
+  getTierConfig, 
+  hasFeature,
+  getAvailableSources 
+} from '../config/subscriptions';
 
 const router = express.Router();
 const logger = createLogger('SearchRoute');
@@ -19,9 +32,15 @@ const logger = createLogger('SearchRoute');
  */
 router.post(
   '/',
+  optionalAuth, // Allow both authenticated and guest searches
+  filterSourcesByTier, // Filter sources based on subscription tier
   async (req: Request, res: Response): Promise<void> => {
     const startTime = Date.now();
     const requestId = `search-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const authReq = req as AuthRequest;
+    const userId = authReq.user?.id;
+    const tier = (authReq.user?.subscription_tier || 'free') as SubscriptionTier;
+    const tierConfig = getTierConfig(tier);
 
     try {
       const { query, sources = ['alibaba', 'cj-dropshipping'] } = req.body;
@@ -32,9 +51,29 @@ router.post(
         return;
       }
 
+      // Check search limits for authenticated users
+      if (userId) {
+        const usage = await getUserUsage(userId);
+        const limit = tierConfig.limits.searchesPerMonth;
+        
+        if (limit !== -1 && usage.searches >= limit) {
+          res.status(403).json({
+            error: 'Monthly search limit reached',
+            currentUsage: usage.searches,
+            limit,
+            currentTier: tier,
+            upgrade: true,
+            message: `You've used all ${limit} searches this month. Upgrade for more!`,
+          });
+          return;
+        }
+      }
+
       logger.info('SEARCH_STARTED', `Searching for: "${query}"`, undefined, {
         query,
         sources,
+        userId,
+        tier,
       });
 
       const results: Record<string, any[]> = {
@@ -113,27 +152,89 @@ router.post(
       // Wait for all searches to complete
       await Promise.all(searchPromises);
 
-      const totalResults = results.alibaba.length + results['made-in-china'].length + results['cj-dropshipping'].length;
+      // Apply tier-based result limits
+      const maxResults = tierConfig.limits.resultsPerSearch;
+      const shouldShowSources = hasFeature(tier, 'showSourceNames');
+      
+      // Limit results per source based on tier
+      const limitedResults: Record<string, any[]> = {
+        alibaba: [],
+        'made-in-china': [],
+        'cj-dropshipping': [],
+      };
+      
+      let totalCollected = 0;
+      const perSourceLimit = maxResults === -1 ? 100 : Math.ceil(maxResults / sources.length);
+      
+      for (const source of Object.keys(results)) {
+        const sourceResults = results[source].slice(0, perSourceLimit);
+        
+        // Process results - hide source info for lower tiers
+        limitedResults[source] = sourceResults.map((product: any) => {
+          if (!shouldShowSources) {
+            // Hide source-identifying information for Free/Starter tiers
+            return {
+              ...product,
+              source: 'supplier', // Generic label
+              supplier: 'Verified Supplier', // Hide actual supplier name
+              // Keep URL but obfuscate for conversion tracking
+              url: product.url ? `${product.url.split('?')[0]}` : undefined,
+            };
+          }
+          return product;
+        });
+        
+        totalCollected += limitedResults[source].length;
+      }
+
+      const totalResults = limitedResults.alibaba.length + limitedResults['made-in-china'].length + limitedResults['cj-dropshipping'].length;
       const duration = Date.now() - startTime;
+
+      // Increment search usage for authenticated users
+      if (userId) {
+        await incrementUsage(userId, 'searches');
+        
+        // Log the search
+        try {
+          await SearchLog.create({
+            userId,
+            searchQuery: query,
+            resultsCount: totalResults,
+            sourcesSearched: sources.join(','),
+          });
+        } catch (logError) {
+          logger.warn('SEARCH_LOG_FAILED', 'Failed to log search', { error: logError });
+        }
+      }
 
       logger.info('SEARCH_COMPLETED', `Search for "${query}" completed`, duration, {
         query,
         resultsCount: totalResults,
         sources,
+        tier,
+        userId,
       });
 
       res.json({
         query,
-        results,
+        results: limitedResults,
         timestamp: new Date(),
         requestId,
         duration,
-        sources: {
-          alibaba: results.alibaba.length,
-          'made-in-china': results['made-in-china'].length,
-          'cj-dropshipping': results['cj-dropshipping'].length,
+        sources: shouldShowSources ? {
+          alibaba: limitedResults.alibaba.length,
+          'made-in-china': limitedResults['made-in-china'].length,
+          'cj-dropshipping': limitedResults['cj-dropshipping'].length,
           total: totalResults,
+        } : {
+          total: totalResults, // Only show total count for lower tiers
         },
+        // Include subscription info in response
+        subscription: userId ? {
+          tier,
+          resultsLimit: maxResults,
+          showSources: shouldShowSources,
+        } : undefined,
       });
     } catch (error) {
       const duration = Date.now() - startTime;

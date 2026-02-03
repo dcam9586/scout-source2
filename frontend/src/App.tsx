@@ -26,6 +26,10 @@ const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'));
 const TermsOfService = lazy(() => import('./pages/TermsOfService'));
 const AccountPage = lazy(() => import('./pages/AccountPage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
+const PricingPage = lazy(() => import('./pages/PricingPage'));
+
+// Global Modal Components
+import UpgradeModal from './components/UpgradeModal';
 
 // Loading fallback component
 const PageLoader: React.FC = () => (
@@ -88,11 +92,13 @@ const App: React.FC = () => {
           <Suspense fallback={<PageLoader />}>
             <Routes>
               <Route path="/" element={<LandingPage onLoginClick={handleLoginClick} />} />
+              <Route path="/pricing" element={<PricingPage />} />
               <Route path="/privacy" element={<PrivacyPolicy />} />
               <Route path="/terms" element={<TermsOfService />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </Suspense>
+          <UpgradeModal />
         </Router>
       </AppProvider>
     );
@@ -113,6 +119,7 @@ const App: React.FC = () => {
               <Route path="/account" element={<AccountPage />} />
               <Route path="/settings" element={<SettingsPage />} />
               <Route path="/settings/api-keys" element={<ApiKeysPage />} />
+              <Route path="/pricing" element={<PricingPage />} />
               <Route path="/privacy" element={<PrivacyPolicy />} />
               <Route path="/terms" element={<TermsOfService />} />
               <Route path="*" element={<Navigate to="/" replace />} />
@@ -120,6 +127,7 @@ const App: React.FC = () => {
           </Suspense>
         </main>
         <Footer />
+        <UpgradeModal />
       </Router>
     </AppProvider>
   );

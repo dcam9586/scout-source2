@@ -7,6 +7,8 @@
 
 import React, { useState } from 'react';
 import { ProductCardProps } from './ProductCard';
+import useAppStore from '../store/appStore';
+import { getTierConfig, SubscriptionTier } from '../config/subscriptions';
 import '../styles/components.css';
 
 export interface ResultsTableProps {
@@ -47,6 +49,13 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [viewMode, setViewMode] = useState<ViewMode>('cards');
   const [columnCount, setColumnCount] = useState<ColumnCount>(4);
+  
+  // Get user's subscription tier to determine if we should show source names
+  const subscription = useAppStore((state) => state.subscription);
+  const showUpgradeModal = useAppStore((state) => state.showUpgradeModal);
+  const userTier: SubscriptionTier = (subscription?.tier as SubscriptionTier) || 'free';
+  const tierConfig = getTierConfig(userTier);
+  const canShowSources = tierConfig.features.showSourceNames;
 
   const toggleSelect = (id: string) => {
     setSelectedIds((prev) => {
@@ -217,12 +226,26 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
                     </div>
                   </td>
                   <td className="results-table__td results-table__td--source">
-                    <span 
-                      className="results-table__source-badge"
-                      style={{ backgroundColor: sourceColors[product.source] || '#6B7280' }}
-                    >
-                      {sourceLabels[product.source] || product.source}
-                    </span>
+                    {canShowSources ? (
+                      <span 
+                        className="results-table__source-badge"
+                        style={{ backgroundColor: sourceColors[product.source] || '#6B7280' }}
+                      >
+                        {sourceLabels[product.source] || product.source}
+                      </span>
+                    ) : (
+                      <span 
+                        className="results-table__source-badge results-table__source-badge--locked"
+                        style={{ backgroundColor: '#9CA3AF', cursor: 'pointer' }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          showUpgradeModal('showSourceNames');
+                        }}
+                        title="Upgrade to see supplier source"
+                      >
+                        🔒 PRO
+                      </span>
+                    )}
                   </td>
                   <td className="results-table__td results-table__td--price">
                     <span className="results-table__price">
@@ -309,12 +332,26 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
                     (e.target as HTMLImageElement).src = 'https://via.placeholder.com/300x200?text=No+Image';
                   }}
                 />
-                <span 
-                  className="results-card__source-badge"
-                  style={{ backgroundColor: sourceColors[product.source] || '#6B7280' }}
-                >
-                  {sourceLabels[product.source] || product.source}
-                </span>
+                {canShowSources ? (
+                  <span 
+                    className="results-card__source-badge"
+                    style={{ backgroundColor: sourceColors[product.source] || '#6B7280' }}
+                  >
+                    {sourceLabels[product.source] || product.source}
+                  </span>
+                ) : (
+                  <span 
+                    className="results-card__source-badge results-card__source-badge--locked"
+                    style={{ backgroundColor: '#9CA3AF', cursor: 'pointer' }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      showUpgradeModal('showSourceNames');
+                    }}
+                    title="Upgrade to see supplier source"
+                  >
+                    🔒 PRO
+                  </span>
+                )}
               </div>
 
               {/* Product Content */}

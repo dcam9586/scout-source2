@@ -28,8 +28,16 @@ export async function initializeDatabase(): Promise<void> {
         refresh_token TEXT,
         token_expires_at TIMESTAMP,
         subscription_tier VARCHAR(50) DEFAULT 'free',
+        subscription_status VARCHAR(50) DEFAULT 'active',
+        subscription_started_at TIMESTAMP,
+        subscription_ends_at TIMESTAMP,
+        stripe_customer_id VARCHAR(255),
+        stripe_subscription_id VARCHAR(255),
         searches_used INT DEFAULT 0,
         searches_reset_date TIMESTAMP DEFAULT NOW(),
+        saved_items_count INT DEFAULT 0,
+        push_to_shopify_count INT DEFAULT 0,
+        push_reset_date TIMESTAMP DEFAULT NOW(),
         created_at TIMESTAMP DEFAULT NOW(),
         updated_at TIMESTAMP DEFAULT NOW()
       );
@@ -131,9 +139,41 @@ export async function initializeDatabase(): Promise<void> {
       ADD COLUMN IF NOT EXISTS push_status VARCHAR(50);
     `);
 
+    // Create user_usage table for detailed monthly tracking
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS user_usage (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        period_start DATE NOT NULL,
+        period_end DATE NOT NULL,
+        searches_count INT DEFAULT 0,
+        saved_items_count INT DEFAULT 0,
+        comparisons_count INT DEFAULT 0,
+        push_to_shopify_count INT DEFAULT 0,
+        exports_count INT DEFAULT 0,
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW(),
+        CONSTRAINT unique_user_period UNIQUE(user_id, period_start)
+      );
+    `);
+
+    // Create subscription_history table for audit trail
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS subscription_history (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        previous_tier VARCHAR(50),
+        new_tier VARCHAR(50) NOT NULL,
+        change_reason VARCHAR(100),
+        changed_at TIMESTAMP DEFAULT NOW(),
+        stripe_event_id VARCHAR(255)
+      );
+    `);
+
     // Create indexes
     await client.query(`
       CREATE INDEX IF NOT EXISTS idx_users_shop_name ON users(shop_name);
+      CREATE INDEX IF NOT EXISTS idx_users_subscription_tier ON users(subscription_tier);
       CREATE INDEX IF NOT EXISTS idx_saved_items_user_id ON saved_items(user_id);
       CREATE INDEX IF NOT EXISTS idx_search_logs_user_id ON search_logs(user_id);
       CREATE INDEX IF NOT EXISTS idx_comparisons_user_id ON comparisons(user_id);
@@ -141,6 +181,8 @@ export async function initializeDatabase(): Promise<void> {
       CREATE INDEX IF NOT EXISTS idx_pushed_products_status ON pushed_products(push_status);
       CREATE INDEX IF NOT EXISTS idx_partner_connections_user_id ON partner_connections(user_id);
       CREATE INDEX IF NOT EXISTS idx_saved_items_shopify_product ON saved_items(shopify_product_id);
+      CREATE INDEX IF NOT EXISTS idx_user_usage_user_period ON user_usage(user_id, period_start);
+      CREATE INDEX IF NOT EXISTS idx_subscription_history_user ON subscription_history(user_id);
     `);
 
     await client.query('COMMIT');

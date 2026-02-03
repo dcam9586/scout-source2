@@ -1,0 +1,274 @@
+/**
+ * PricingPage Component
+ * Standalone pricing page showing all subscription tiers
+ */
+
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import useAppStore from '../store/appStore';
+import { 
+  getAllTiers, 
+  SubscriptionTierConfig, 
+  formatLimit,
+  SubscriptionTier 
+} from '../config/subscriptions';
+import Footer from '../components/Footer';
+import '../styles/pages.css';
+
+const PricingPage: React.FC = () => {
+  const navigate = useNavigate();
+  const token = useAppStore((state) => state.token);
+  const subscription = useAppStore((state) => state.subscription);
+  const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'yearly'>('yearly');
+  
+  const tiers = getAllTiers();
+  const currentTier = subscription?.tier || 'free';
+
+  const handleSelectPlan = (tier: SubscriptionTier) => {
+    if (!token) {
+      // Not logged in - prompt to sign up
+      navigate('/?signup=true');
+      return;
+    }
+    
+    if (tier === 'free') {
+      navigate('/search');
+      return;
+    }
+    
+    // TODO: Integrate with Stripe/PayPal
+    console.log('Selected plan:', tier, 'Billing:', billingPeriod);
+    alert(`Payment integration coming soon! You selected: ${tier} (${billingPeriod})`);
+  };
+
+  const getPrice = (tier: SubscriptionTierConfig) => {
+    if (tier.price === 0) return 'Free';
+    const price = billingPeriod === 'yearly' 
+      ? Math.round(tier.yearlyPrice / 12) 
+      : tier.price;
+    return `$${price}`;
+  };
+
+  const getYearlyTotal = (tier: SubscriptionTierConfig) => {
+    if (tier.price === 0) return null;
+    return billingPeriod === 'yearly' ? tier.yearlyPrice : tier.price * 12;
+  };
+
+  const getSavings = (tier: SubscriptionTierConfig) => {
+    if (tier.price === 0) return null;
+    const yearlySavings = (tier.price * 12) - tier.yearlyPrice;
+    if (yearlySavings <= 0) return null;
+    return yearlySavings;
+  };
+
+  const featuresList = [
+    { key: 'searches', label: 'Searches per month', getValue: (t: SubscriptionTierConfig) => formatLimit(t.limits.searchesPerMonth) },
+    { key: 'results', label: 'Results per search', getValue: (t: SubscriptionTierConfig) => formatLimit(t.limits.resultsPerSearch) },
+    { key: 'savedItems', label: 'Saved items', getValue: (t: SubscriptionTierConfig) => formatLimit(t.limits.savedItems) },
+    { key: 'comparisons', label: 'Compare items', getValue: (t: SubscriptionTierConfig) => formatLimit(t.limits.maxCompareItems) },
+    { key: 'pushToShopify', label: 'Push to Shopify', getValue: (t: SubscriptionTierConfig) => formatLimit(t.limits.pushToShopifyPerMonth) },
+    { key: 'sources', label: 'All supplier sources', getValue: (t: SubscriptionTierConfig) => t.features.allSources ? '✓' : 'CJ only' },
+    { key: 'showSources', label: 'See source names', getValue: (t: SubscriptionTierConfig) => t.features.showSourceNames ? '✓' : '—' },
+    { key: 'exportCsv', label: 'Export to CSV', getValue: (t: SubscriptionTierConfig) => t.features.exportCsv ? '✓' : '—' },
+    { key: 'moqFilter', label: 'MOQ filter', getValue: (t: SubscriptionTierConfig) => t.features.moqFilter ? '✓' : '—' },
+    { key: 'locationFilter', label: 'Location filter', getValue: (t: SubscriptionTierConfig) => t.features.locationFilter ? '✓' : '—' },
+    { key: 'supplierType', label: 'Supplier type filter', getValue: (t: SubscriptionTierConfig) => t.features.supplierTypeFilter ? '✓' : '—' },
+    { key: 'certifications', label: 'Certification filters', getValue: (t: SubscriptionTierConfig) => t.features.certificationsFilter ? '✓' : '—' },
+    { key: 'hsCode', label: 'HS Code search', getValue: (t: SubscriptionTierConfig) => t.features.hsCodeSearch ? '✓' : '—' },
+    { key: 'incoterms', label: 'Incoterms filter', getValue: (t: SubscriptionTierConfig) => t.features.incotermsFilter ? '✓' : '—' },
+    { key: 'responseRate', label: 'Response rate ranking', getValue: (t: SubscriptionTierConfig) => t.features.responseRateRanking ? '✓' : '—' },
+    { key: 'transactionHistory', label: 'Transaction history', getValue: (t: SubscriptionTierConfig) => t.features.transactionHistory ? '✓' : '—' },
+    { key: 'verification', label: 'Supplier verification', getValue: (t: SubscriptionTierConfig) => t.features.supplierVerification ? '✓' : '—' },
+    { key: 'tariff', label: 'Tariff calculator', getValue: (t: SubscriptionTierConfig) => t.features.tariffCalculator ? '✓' : '—' },
+    { key: 'api', label: 'API access', getValue: (t: SubscriptionTierConfig) => t.features.apiAccess ? '✓' : '—' },
+    { key: 'support', label: 'Support', getValue: (t: SubscriptionTierConfig) => formatSupport(t.supportLevel) },
+  ];
+
+  return (
+    <div className="pricing-page">
+      <div className="pricing-page__header">
+        <h1 className="pricing-page__title">Simple, Transparent Pricing</h1>
+        <p className="pricing-page__subtitle">
+          Choose the plan that fits your sourcing needs. Upgrade or downgrade anytime.
+        </p>
+        
+        {/* Billing Toggle */}
+        <div className="pricing-page__billing-toggle">
+          <button 
+            className={`pricing-page__billing-btn ${billingPeriod === 'monthly' ? 'pricing-page__billing-btn--active' : ''}`}
+            onClick={() => setBillingPeriod('monthly')}
+          >
+            Monthly
+          </button>
+          <button 
+            className={`pricing-page__billing-btn ${billingPeriod === 'yearly' ? 'pricing-page__billing-btn--active' : ''}`}
+            onClick={() => setBillingPeriod('yearly')}
+          >
+            Yearly
+            <span className="pricing-page__billing-save">Save 20%</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Pricing Cards */}
+      <div className="pricing-page__cards">
+        {tiers.map((tier) => {
+          const isCurrentPlan = !!token && tier.id === currentTier;
+          const savings = getSavings(tier);
+          const yearlyTotal = getYearlyTotal(tier);
+          
+          return (
+            <div 
+              key={tier.id} 
+              className={`pricing-card ${tier.popular ? 'pricing-card--popular' : ''} ${isCurrentPlan ? 'pricing-card--current' : ''}`}
+            >
+              {tier.badge && (
+                <div className="pricing-card__badge">{tier.badge}</div>
+              )}
+              
+              <h3 className="pricing-card__name">{tier.name}</h3>
+              <p className="pricing-card__description">{tier.description}</p>
+              
+              <div className="pricing-card__price">
+                <span className="pricing-card__amount">{getPrice(tier)}</span>
+                {tier.price > 0 && (
+                  <span className="pricing-card__period">/month</span>
+                )}
+              </div>
+              
+              {billingPeriod === 'yearly' && yearlyTotal && (
+                <div className="pricing-card__yearly">
+                  ${yearlyTotal} billed annually
+                </div>
+              )}
+              
+              {billingPeriod === 'yearly' && savings && (
+                <div className="pricing-card__savings">
+                  Save ${savings}/year
+                </div>
+              )}
+
+              <button
+                className={`pricing-card__btn ${tier.popular ? 'pricing-card__btn--primary' : ''}`}
+                onClick={() => handleSelectPlan(tier.id)}
+                disabled={isCurrentPlan}
+              >
+                {isCurrentPlan ? 'Current Plan' : tier.price === 0 ? 'Get Started Free' : 'Start Free Trial'}
+              </button>
+
+              <ul className="pricing-card__features">
+                <li className="pricing-card__feature pricing-card__feature--highlight">
+                  <span className="pricing-card__feature-icon">🔍</span>
+                  {formatLimit(tier.limits.searchesPerMonth)} searches/month
+                </li>
+                <li className="pricing-card__feature pricing-card__feature--highlight">
+                  <span className="pricing-card__feature-icon">📦</span>
+                  {formatLimit(tier.limits.resultsPerSearch)} results per search
+                </li>
+                <li className="pricing-card__feature">
+                  <span className="pricing-card__feature-icon">💾</span>
+                  {formatLimit(tier.limits.savedItems)} saved items
+                </li>
+                <li className="pricing-card__feature">
+                  <span className="pricing-card__feature-icon">🛒</span>
+                  {formatLimit(tier.limits.pushToShopifyPerMonth)} Shopify pushes
+                </li>
+                {tier.features.showSourceNames && (
+                  <li className="pricing-card__feature">
+                    <span className="pricing-card__feature-icon">👁️</span>
+                    See supplier sources
+                  </li>
+                )}
+                {tier.features.hsCodeSearch && (
+                  <li className="pricing-card__feature">
+                    <span className="pricing-card__feature-icon">🏷️</span>
+                    HS Code search
+                  </li>
+                )}
+                {tier.features.certificationsFilter && (
+                  <li className="pricing-card__feature">
+                    <span className="pricing-card__feature-icon">✅</span>
+                    Certification filters
+                  </li>
+                )}
+              </ul>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Feature Comparison Table */}
+      <div className="pricing-page__comparison">
+        <h2 className="pricing-page__comparison-title">Compare All Features</h2>
+        
+        <div className="pricing-page__table-wrapper">
+          <table className="pricing-page__table">
+            <thead>
+              <tr>
+                <th>Feature</th>
+                {tiers.map((tier) => (
+                  <th key={tier.id} className={tier.popular ? 'pricing-page__th--popular' : ''}>
+                    {tier.name}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {featuresList.map((feature) => (
+                <tr key={feature.key}>
+                  <td className="pricing-page__feature-name">{feature.label}</td>
+                  {tiers.map((tier) => (
+                    <td 
+                      key={tier.id} 
+                      className={`pricing-page__feature-value ${tier.popular ? 'pricing-page__td--popular' : ''}`}
+                    >
+                      {feature.getValue(tier)}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* FAQ Section */}
+      <div className="pricing-page__faq">
+        <h2 className="pricing-page__faq-title">Frequently Asked Questions</h2>
+        
+        <div className="pricing-page__faq-grid">
+          <div className="pricing-page__faq-item">
+            <h3>Can I change plans anytime?</h3>
+            <p>Yes! You can upgrade or downgrade your plan at any time. Changes take effect immediately, and we'll prorate your billing.</p>
+          </div>
+          <div className="pricing-page__faq-item">
+            <h3>Is there a free trial?</h3>
+            <p>The Free plan lets you explore basic features forever. Paid plans come with a 7-day money-back guarantee.</p>
+          </div>
+          <div className="pricing-page__faq-item">
+            <h3>What payment methods do you accept?</h3>
+            <p>We accept all major credit cards, PayPal, and Shopify Billing for seamless integration with your store.</p>
+          </div>
+          <div className="pricing-page__faq-item">
+            <h3>What's the difference between tiers?</h3>
+            <p>Higher tiers unlock more searches, advanced filters like HS Code and certifications, and pro features like source visibility.</p>
+          </div>
+        </div>
+      </div>
+
+      <Footer />
+    </div>
+  );
+};
+
+function formatSupport(level: string): string {
+  const labels: Record<string, string> = {
+    community: 'Community',
+    email: 'Email',
+    priority: 'Priority',
+    dedicated: 'Dedicated Manager',
+  };
+  return labels[level] || level;
+}
+
+export default PricingPage;

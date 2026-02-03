@@ -123,6 +123,14 @@ const Navigation: React.FC<NavigationProps> = ({ onLoginClick }) => {
             >
               Settings
             </Link>
+            <Link
+              to="/pricing"
+              className={`navigation__link navigation__link--pricing ${isActive('/pricing') ? 'navigation__link--active' : ''}`}
+              role="menuitem"
+              aria-current={isActive('/pricing') ? 'page' : undefined}
+            >
+              Pricing
+            </Link>
           </div>
 
           {/* User Menu */}
@@ -319,6 +327,14 @@ const Navigation: React.FC<NavigationProps> = ({ onLoginClick }) => {
             onClick={() => setIsMenuOpen(false)}
           >
             Comparisons
+          </Link>
+          <Link
+            to="/pricing"
+            className="navigation__mobile-link navigation__mobile-link--pricing"
+            role="menuitem"
+            onClick={() => setIsMenuOpen(false)}
+          >
+            ✨ Pricing
           </Link>
         </div>
       )}

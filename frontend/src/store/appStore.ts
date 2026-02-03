@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { User, SavedItem, Comparison, ApiUsage, SearchSource } from '../types';
 import { ProductCardProps } from '../components/ProductCard';
+import { SubscriptionTier, SubscriptionTierConfig, getTierConfig } from '../config/subscriptions';
 
 interface SearchState {
   query: string;
@@ -11,6 +12,21 @@ interface SearchState {
   timestamp: number;
 }
 
+interface SubscriptionUsage {
+  searches: number;
+  savedItems: number;
+  pushToShopify: number;
+  comparisons: number;
+}
+
+interface SubscriptionState {
+  tier: SubscriptionTier;
+  config: SubscriptionTierConfig;
+  usage: SubscriptionUsage;
+  showUpgradeModal: boolean;
+  upgradeFeature: string | null;
+}
+
 interface AppStore {
   // Auth
   token: string | null;
@@ -18,6 +34,13 @@ interface AppStore {
   setToken: (token: string) => void;
   setUser: (user: User) => void;
   logout: () => void;
+
+  // Subscription
+  subscription: SubscriptionState;
+  setSubscriptionTier: (tier: SubscriptionTier) => void;
+  setSubscriptionUsage: (usage: SubscriptionUsage) => void;
+  showUpgradeModal: (feature?: string) => void;
+  hideUpgradeModal: () => void;
 
   // Saved Items
   savedItems: SavedItem[];
@@ -53,6 +76,14 @@ interface AppStore {
   setError: (error: string | null) => void;
 }
 
+const defaultSubscription: SubscriptionState = {
+  tier: 'free',
+  config: getTierConfig('free'),
+  usage: { searches: 0, savedItems: 0, pushToShopify: 0, comparisons: 0 },
+  showUpgradeModal: false,
+  upgradeFeature: null,
+};
+
 const useAppStore = create<AppStore>()(
   persist(
     (set) => ({
@@ -63,11 +94,63 @@ const useAppStore = create<AppStore>()(
         localStorage.setItem('token', token);
         set({ token });
       },
-      setUser: (user: User) => set({ user }),
+      setUser: (user: User) => {
+        // Also update subscription tier from user data
+        const tier = (user.subscription_tier || 'free') as SubscriptionTier;
+        set({ 
+          user,
+          subscription: {
+            ...defaultSubscription,
+            tier,
+            config: getTierConfig(tier),
+          }
+        });
+      },
       logout: () => {
         localStorage.removeItem('token');
-        set({ token: null, user: null, savedItems: [], comparisons: [], searchState: null });
+        set({ 
+          token: null, 
+          user: null, 
+          savedItems: [], 
+          comparisons: [], 
+          searchState: null,
+          subscription: defaultSubscription,
+        });
       },
+
+      // Subscription
+      subscription: defaultSubscription,
+      setSubscriptionTier: (tier: SubscriptionTier) =>
+        set((state) => ({
+          subscription: {
+            ...state.subscription,
+            tier,
+            config: getTierConfig(tier),
+          },
+        })),
+      setSubscriptionUsage: (usage: SubscriptionUsage) =>
+        set((state) => ({
+          subscription: {
+            ...state.subscription,
+            usage,
+          },
+        })),
+      showUpgradeModal: (feature?: string) =>
+        set((state) => ({
+          subscription: {
+            ...state.subscription,
+            showUpgradeModal: true,
+            upgradeFeature: feature || null,
+          },
+        })),
+      hideUpgradeModal: () =>
+        set((state) => ({
+          subscription: {
+            ...state.subscription,
+            showUpgradeModal: false,
+            upgradeFeature: null,
+          },
+        })),
 
       // Saved Items
       savedItems: [],
