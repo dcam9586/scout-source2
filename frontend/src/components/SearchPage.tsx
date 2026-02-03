@@ -90,6 +90,8 @@ interface SearchPageProps {}
 const SearchPage: React.FC<SearchPageProps> = () => {
   const [isSearching, setIsSearching] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [currentSearchQuery, setCurrentSearchQuery] = useState<string>(''); // Track the active search query
+  const [currentSearchSources, setCurrentSearchSources] = useState<SearchSource[]>([]); // Track the active search sources
   
   // Toast notifications
   const [toastActive, setToastActive] = useState(false);
@@ -150,6 +152,9 @@ const SearchPage: React.FC<SearchPageProps> = () => {
       return;
     }
 
+    // Set the current search query and sources IMMEDIATELY before async operations
+    setCurrentSearchQuery(searchQuery.trim());
+    setCurrentSearchSources(sources);
     setIsSearching(true);
     setError(null);
 
@@ -341,14 +346,14 @@ const SearchPage: React.FC<SearchPageProps> = () => {
 
         {/* Show enhanced skeleton loader while searching */}
         {isSearching && (
-          <SearchLoadingSkeleton query={query} />
+          <SearchLoadingSkeleton query={currentSearchQuery || query} />
         )}
 
         {/* Animated loading overlay - kept for visual enhancement */}
         <SearchLoadingOverlay 
           isVisible={isSearching} 
-          sources={searchedSources} 
-          query={query} 
+          sources={currentSearchSources.length > 0 ? currentSearchSources : searchedSources} 
+          query={currentSearchQuery || query} 
         />
 
         {/* Responsive Results - Table on desktop, Cards on mobile */}
