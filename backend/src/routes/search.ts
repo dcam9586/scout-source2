@@ -196,12 +196,12 @@ router.post(
         
         // Log the search
         try {
-          await SearchLog.create({
+          await SearchLog.create(
             userId,
-            searchQuery: query,
-            resultsCount: totalResults,
-            sourcesSearched: sources.join(','),
-          });
+            query,
+            totalResults,
+            sources
+          );
         } catch (logError) {
           logger.warn('SEARCH_LOG_FAILED', 'Failed to log search', { error: logError });
         }
