@@ -6,6 +6,9 @@ import { createLogger } from '../utils/logger';
 import { getAlibabaScraper } from '../services/alibaba-scraper';
 import { getMadeInChinaScraper } from '../services/made-in-china-scraper';
 import { getCJDropshippingService } from '../services/cj-dropshipping';
+import { getGlobalSourcesScraper } from '../services/global-sources-scraper';
+import { getTradeKoreaScraper } from '../services/tradekorea-scraper';
+import { getWholesaleCentralScraper } from '../services/wholesale-central-scraper';
 import { getBossModeService } from '../services/boss-mode-service';
 import { 
   filterSourcesByTier, 
@@ -203,6 +206,9 @@ router.post(
         alibaba: [],
         'made-in-china': [],
         'cj-dropshipping': [],
+        'global-sources': [],
+        'tradekorea': [],
+        'wholesale-central': [],
       };
 
       // Search in parallel for better performance
@@ -272,6 +278,63 @@ router.post(
         );
       }
 
+      // Search Global Sources
+      if (sources.includes('global-sources')) {
+        searchPromises.push(
+          (async () => {
+            logger.debug('GLOBAL_SOURCES_SEARCH', `Querying Global Sources for "${query}"`);
+            try {
+              const scraper = getGlobalSourcesScraper();
+              const gsProducts = await scraper.searchProducts(query, 10);
+              results['global-sources'] = gsProducts;
+              logger.info('GLOBAL_SOURCES_RESULTS', `Found ${gsProducts.length} products on Global Sources`);
+            } catch (error) {
+              logger.warn('GLOBAL_SOURCES_SEARCH_ERROR', 'Global Sources search failed', {
+                error: (error as Error).message,
+              });
+            }
+          })()
+        );
+      }
+
+      // Search TradeKorea
+      if (sources.includes('tradekorea')) {
+        searchPromises.push(
+          (async () => {
+            logger.debug('TRADEKOREA_SEARCH', `Querying TradeKorea for "${query}"`);
+            try {
+              const scraper = getTradeKoreaScraper();
+              const tkProducts = await scraper.searchProducts(query, 10);
+              results['tradekorea'] = tkProducts;
+              logger.info('TRADEKOREA_RESULTS', `Found ${tkProducts.length} products on TradeKorea`);
+            } catch (error) {
+              logger.warn('TRADEKOREA_SEARCH_ERROR', 'TradeKorea search failed', {
+                error: (error as Error).message,
+              });
+            }
+          })()
+        );
+      }
+
+      // Search Wholesale Central
+      if (sources.includes('wholesale-central')) {
+        searchPromises.push(
+          (async () => {
+            logger.debug('WHOLESALE_SEARCH', `Querying Wholesale Central for "${query}"`);
+            try {
+              const scraper = getWholesaleCentralScraper();
+              const wcProducts = await scraper.searchProducts(query, 10);
+              results['wholesale-central'] = wcProducts;
+              logger.info('WHOLESALE_RESULTS', `Found ${wcProducts.length} products on Wholesale Central`);
+            } catch (error) {
+              logger.warn('WHOLESALE_SEARCH_ERROR', 'Wholesale Central search failed', {
+                error: (error as Error).message,
+              });
+            }
+          })()
+        );
+      }
+
       // Wait for all searches to complete
       await Promise.all(searchPromises);
 
@@ -284,6 +347,9 @@ router.post(
         alibaba: [],
         'made-in-china': [],
         'cj-dropshipping': [],
+        'global-sources': [],
+        'tradekorea': [],
+        'wholesale-central': [],
       };
       
       let totalCollected = 0;
@@ -310,7 +376,12 @@ router.post(
         totalCollected += limitedResults[source].length;
       }
 
-      const totalResults = limitedResults.alibaba.length + limitedResults['made-in-china'].length + limitedResults['cj-dropshipping'].length;
+      const totalResults = limitedResults.alibaba.length + 
+        limitedResults['made-in-china'].length + 
+        limitedResults['cj-dropshipping'].length +
+        limitedResults['global-sources'].length +
+        limitedResults['tradekorea'].length +
+        limitedResults['wholesale-central'].length;
       const duration = Date.now() - startTime;
 
       // Increment search usage for authenticated users
@@ -348,6 +419,9 @@ router.post(
           alibaba: limitedResults.alibaba.length,
           'made-in-china': limitedResults['made-in-china'].length,
           'cj-dropshipping': limitedResults['cj-dropshipping'].length,
+          'global-sources': limitedResults['global-sources'].length,
+          'tradekorea': limitedResults['tradekorea'].length,
+          'wholesale-central': limitedResults['wholesale-central'].length,
           total: totalResults,
         } : {
           total: totalResults, // Only show total count for lower tiers

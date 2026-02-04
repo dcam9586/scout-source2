@@ -280,15 +280,31 @@ export function getAllTiers(): SubscriptionTierConfig[] {
 }
 
 /**
+ * All supported search sources
+ */
+export const ALL_SOURCES = [
+  'alibaba',
+  'made-in-china', 
+  'cj-dropshipping',
+  'global-sources',
+  'tradekorea',
+  'wholesale-central'
+] as const;
+
+export type SearchSource = typeof ALL_SOURCES[number];
+
+/**
  * Sources available per tier
  */
 export function getAvailableSources(tier: SubscriptionTier): string[] {
   const config = getTierConfig(tier);
   
   if (config.features.allSources) {
-    return ['alibaba', 'made-in-china', 'cj-dropshipping'];
+    // Paid tiers get all sources
+    return [...ALL_SOURCES];
   }
   
-  // Free tier only gets CJ Dropshipping
-  return ['cj-dropshipping'];
+  // Free tier gets basic sources (Alibaba, Made-in-China, CJ)
+  // This allows users to test the app functionality
+  return ['alibaba', 'made-in-china', 'cj-dropshipping'];
 }

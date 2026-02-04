@@ -132,6 +132,39 @@ const SearchBar: React.FC<SearchBarProps> = ({
                   <Badge tone="success">CJ Dropshipping</Badge>
                   <Text as="span" variant="bodySm" tone="subdued">Official API • No MOQ</Text>
                 </InlineStack>
+
+                <InlineStack gap="200" align="center">
+                  <Checkbox
+                    label=""
+                    checked={selectedSources.includes('global-sources')}
+                    onChange={() => toggleSource('global-sources')}
+                    disabled={isLoading}
+                  />
+                  <Badge tone="attention">Global Sources</Badge>
+                  <Text as="span" variant="bodySm" tone="subdued">Web scraping</Text>
+                </InlineStack>
+
+                <InlineStack gap="200" align="center">
+                  <Checkbox
+                    label=""
+                    checked={selectedSources.includes('tradekorea')}
+                    onChange={() => toggleSource('tradekorea')}
+                    disabled={isLoading}
+                  />
+                  <Badge tone="magic">TradeKorea</Badge>
+                  <Text as="span" variant="bodySm" tone="subdued">Korean suppliers</Text>
+                </InlineStack>
+
+                <InlineStack gap="200" align="center">
+                  <Checkbox
+                    label=""
+                    checked={selectedSources.includes('wholesale-central')}
+                    onChange={() => toggleSource('wholesale-central')}
+                    disabled={isLoading}
+                  />
+                  <Badge>Wholesale Central</Badge>
+                  <Text as="span" variant="bodySm" tone="subdued">US wholesalers</Text>
+                </InlineStack>
               </InlineStack>
             </BlockStack>
 

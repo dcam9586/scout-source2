@@ -47,7 +47,7 @@ export interface SearchResult {
 }
 
 // Source type for search operations
-export type SearchSource = 'alibaba' | 'made-in-china' | 'cj-dropshipping';
+export type SearchSource = 'alibaba' | 'made-in-china' | 'cj-dropshipping' | 'global-sources' | 'tradekorea' | 'wholesale-central';
 
 // CJ Dropshipping specific types
 export interface CJProduct {
