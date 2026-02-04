@@ -15,6 +15,7 @@ const AccountPage: React.FC = () => {
   const savedItems = useAppStore((state) => state.savedItems);
   const comparisons = useAppStore((state) => state.comparisons);
   const logout = useAppStore((state) => state.logout);
+  const showUpgradeModal = useAppStore((state) => state.showUpgradeModal);
   
   const [isEditing, setIsEditing] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
@@ -105,9 +106,12 @@ const AccountPage: React.FC = () => {
                       {user?.subscription_tier === 'premium' ? '⭐ Premium' : 'Free Plan'}
                     </span>
                     {user?.subscription_tier !== 'premium' && (
-                      <Link to="/settings" className="account-profile__upgrade-link">
+                      <button 
+                        onClick={() => showUpgradeModal()} 
+                        className="account-profile__upgrade-link"
+                      >
                         Upgrade
-                      </Link>
+                      </button>
                     )}
                   </div>
                 </div>
@@ -253,7 +257,10 @@ const AccountPage: React.FC = () => {
               {user?.subscription_tier !== 'premium' && (
                 <div className="account-usage__upgrade">
                   <p>Need more searches? Upgrade to Premium for 1,000 searches/month.</p>
-                  <button className="account-btn account-btn--primary">
+                  <button 
+                    className="account-btn account-btn--primary"
+                    onClick={() => showUpgradeModal()}
+                  >
                     Upgrade to Premium
                   </button>
                 </div>
