@@ -1,6 +1,6 @@
 import React from 'react';
 import { Card, TextField, Button, BlockStack, Box, InlineStack, Checkbox, Badge, Text, Tooltip, Icon } from '@shopify/polaris';
-import { RocketIcon } from '@shopify/polaris-icons';
+import { MagicIcon } from '@shopify/polaris-icons';
 import { useSearch } from '../hooks/useSearch';
 import useAppStore from '../store/appStore';
 import { hasFeature, getTierConfig } from '../config/subscriptions';
@@ -145,7 +145,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
                   disabled={isLoading || !canUseBossMode}
                 />
                 <InlineStack gap="100" align="center">
-                  <Icon source={RocketIcon} tone={canUseBossMode && bossModeEnabled ? 'success' : 'subdued'} />
+                  <Icon source={MagicIcon} tone={canUseBossMode && bossModeEnabled ? 'success' : 'subdued'} />
                   <Text as="span" variant="bodyMd" fontWeight="semibold">
                     Boss Mode
                   </Text>
