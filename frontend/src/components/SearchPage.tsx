@@ -146,7 +146,7 @@ const SearchPage: React.FC<SearchPageProps> = () => {
    * Handle search submission
    * Fetches products from the backend (Alibaba scraper and/or CJ API)
    */
-  const handleSearch = useCallback(async (searchQuery: string, sources: SearchSource[] = ['alibaba', 'made-in-china', 'cj-dropshipping']) => {
+  const handleSearch = useCallback(async (searchQuery: string, sources: SearchSource[] = ['alibaba', 'made-in-china', 'cj-dropshipping'], bossMode: boolean = false) => {
     if (!searchQuery.trim()) {
       setError('Please enter a search term');
       return;
@@ -167,6 +167,7 @@ const SearchPage: React.FC<SearchPageProps> = () => {
         body: JSON.stringify({
           query: searchQuery,
           sources,
+          bossMode,
           limit: 20
         })
       });

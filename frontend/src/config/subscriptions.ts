@@ -11,12 +11,14 @@ export interface TierLimits {
   savedItems: number;
   maxCompareItems: number;
   pushToShopifyPerMonth: number;
+  bossModeSearchesPerDay: number;
 }
 
 export interface TierFeatures {
   allSources: boolean;
   showSourceNames: boolean;
   apiAccess: boolean;
+  bossMode: boolean;
   exportCsv: boolean;
   moqFilter: boolean;
   locationFilter: boolean;
@@ -56,11 +58,13 @@ export const SUBSCRIPTION_TIERS: Record<SubscriptionTier, SubscriptionTierConfig
       savedItems: 10,
       maxCompareItems: 2,
       pushToShopifyPerMonth: 0,
+      bossModeSearchesPerDay: 0,
     },
     features: {
       allSources: false,
       showSourceNames: false,
       apiAccess: false,
+      bossMode: false,
       exportCsv: false,
       moqFilter: false,
       locationFilter: false,
@@ -88,11 +92,13 @@ export const SUBSCRIPTION_TIERS: Record<SubscriptionTier, SubscriptionTierConfig
       savedItems: 100,
       maxCompareItems: 5,
       pushToShopifyPerMonth: 5,
+      bossModeSearchesPerDay: 0,
     },
     features: {
       allSources: true,
       showSourceNames: false,
       apiAccess: false,
+      bossMode: false,
       exportCsv: true,
       moqFilter: true,
       locationFilter: true,
@@ -120,11 +126,13 @@ export const SUBSCRIPTION_TIERS: Record<SubscriptionTier, SubscriptionTierConfig
       savedItems: -1,
       maxCompareItems: 10,
       pushToShopifyPerMonth: -1,
+      bossModeSearchesPerDay: 3,
     },
     features: {
       allSources: true,
       showSourceNames: true,
       apiAccess: false,
+      bossMode: true,
       exportCsv: true,
       moqFilter: true,
       locationFilter: true,
@@ -154,11 +162,13 @@ export const SUBSCRIPTION_TIERS: Record<SubscriptionTier, SubscriptionTierConfig
       savedItems: -1,
       maxCompareItems: -1,
       pushToShopifyPerMonth: -1,
+      bossModeSearchesPerDay: -1,
     },
     features: {
       allSources: true,
       showSourceNames: true,
       apiAccess: true,
+      bossMode: true,
       exportCsv: true,
       moqFilter: true,
       locationFilter: true,

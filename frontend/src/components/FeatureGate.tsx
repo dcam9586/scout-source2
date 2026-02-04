@@ -173,6 +173,7 @@ function formatLimitName(limit: keyof TierLimits): string {
     savedItems: 'saved items',
     maxCompareItems: 'comparison',
     pushToShopifyPerMonth: 'Shopify push',
+    bossModeSearchesPerDay: 'daily Boss Mode search',
   };
   return names[limit] || limit;
 }

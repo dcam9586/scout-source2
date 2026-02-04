@@ -16,6 +16,7 @@ import shopifyMCPRoutes from './routes/shopify-mcp';
 import shopifyProductsRoutes from './routes/shopify-products';
 import cjDropshippingRoutes from './routes/cj-dropshipping';
 import partnerRoutes from './routes/partners';
+import paymentRoutes from './routes/payments';
 
 dotenv.config();
 
@@ -50,6 +51,7 @@ apiV1.use('/shopify', shopifyMCPRoutes);
 apiV1.use('/shopify/products', shopifyProductsRoutes);
 apiV1.use('/cj', cjDropshippingRoutes);
 apiV1.use('/partners', partnerRoutes);
+apiV1.use('/payments', paymentRoutes);
 
 app.use('/api/v1', apiV1);
 

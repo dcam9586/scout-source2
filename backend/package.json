@@ -32,6 +32,7 @@
     "jsonwebtoken": "^9.0.2",
     "pg": "^8.11.3",
     "puppeteer": "^24.36.1",
+    "stripe": "^20.3.0",
     "uuid": "^9.0.1"
   },
   "devDependencies": {

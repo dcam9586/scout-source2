@@ -6,6 +6,7 @@ import { createLogger } from '../utils/logger';
 import { getAlibabaScraper } from '../services/alibaba-scraper';
 import { getMadeInChinaScraper } from '../services/made-in-china-scraper';
 import { getCJDropshippingService } from '../services/cj-dropshipping';
+import { getBossModeService } from '../services/boss-mode-service';
 import { 
   filterSourcesByTier, 
   checkLimit, 
@@ -43,12 +44,33 @@ router.post(
     const tierConfig = getTierConfig(tier);
 
     try {
-      const { query, sources = ['alibaba', 'cj-dropshipping'] } = req.body;
+      const { query, sources = ['alibaba', 'cj-dropshipping'], bossMode = false } = req.body;
 
       if (!query || typeof query !== 'string' || query.trim().length === 0) {
         logger.warn('SEARCH_VALIDATION_FAILED', 'Invalid search query provided', { query });
         res.status(400).json({ error: 'Search query is required' });
         return;
+      }
+
+      // Check if user is trying to use Boss Mode
+      const canUseBossMode = hasFeature(tier, 'bossMode');
+      const requestedBossMode = bossMode && canUseBossMode;
+      
+      // Check Boss Mode daily limit
+      if (requestedBossMode && userId) {
+        const usage = await getUserUsage(userId);
+        const bossModeLimit = tierConfig.limits.bossModeSearchesPerDay;
+        
+        if (bossModeLimit !== -1 && (usage.bossModeSearchesToday || 0) >= bossModeLimit) {
+          res.status(403).json({
+            error: 'Daily Boss Mode limit reached',
+            currentUsage: usage.bossModeSearchesToday || 0,
+            limit: bossModeLimit,
+            currentTier: tier,
+            message: `You've used all ${bossModeLimit} Boss Mode searches today. Try again tomorrow or upgrade for more!`,
+          });
+          return;
+        }
       }
 
       // Check search limits for authenticated users
@@ -74,8 +96,109 @@ router.post(
         sources,
         userId,
         tier,
+        bossMode: requestedBossMode,
       });
 
+      // ==================== BOSS MODE SEARCH ====================
+      // When Boss Mode is enabled, use the BossModeService for enhanced results
+      if (requestedBossMode) {
+        logger.info('BOSS_MODE_ACTIVATED', `Boss Mode search for "${query}"`, undefined, { tier, userId });
+        
+        const bossModeService = getBossModeService();
+        const bossModeResults = await bossModeService.search({
+          query,
+          sources: sources as ('alibaba' | 'made-in-china' | 'cj-dropshipping')[],
+          limit: tierConfig.limits.resultsPerSearch === -1 ? 50 : tierConfig.limits.resultsPerSearch,
+          bossMode: true,
+        });
+        
+        // Increment Boss Mode usage
+        if (userId) {
+          await incrementUsage(userId, 'bossModeSearches');
+          await incrementUsage(userId, 'searches');
+          
+          // Log the search
+          try {
+            await SearchLog.create(
+              userId,
+              query,
+              bossModeResults.totalResults,
+              sources
+            );
+          } catch (logError) {
+            logger.warn('SEARCH_LOG_FAILED', 'Failed to log search', { error: logError });
+          }
+        }
+        
+        const duration = Date.now() - startTime;
+        const shouldShowSources = hasFeature(tier, 'showSourceNames');
+        
+        // Process Boss Mode results - hide source info for lower tiers if needed
+        const processedResults: Record<string, any[]> = {
+          alibaba: [],
+          'made-in-china': [],
+          'cj-dropshipping': [],
+        };
+        
+        // All products come from the unified products array
+        for (const product of bossModeResults.products) {
+          const source = product.source || 'alibaba';
+          if (!shouldShowSources) {
+            processedResults[source].push({
+              ...product,
+              source: 'supplier',
+              supplier: 'Verified Supplier',
+              productUrl: product.productUrl ? `${product.productUrl.split('?')[0]}` : undefined,
+            });
+          } else {
+            processedResults[source].push({
+              ...product,
+              enhanced: product.enrichedFields && product.enrichedFields.length > 0,
+            });
+          }
+        }
+        
+        logger.info('BOSS_MODE_COMPLETED', `Boss Mode search for "${query}" completed`, duration, {
+          query,
+          totalResults: bossModeResults.totalResults,
+          puppeteerCount: bossModeResults.sources.puppeteer.count,
+          jigsawCount: bossModeResults.sources.jigsawstack.count,
+          sources,
+          tier,
+          userId,
+        });
+        
+        res.json({
+          query,
+          results: processedResults,
+          timestamp: new Date(),
+          requestId,
+          duration,
+          bossMode: true,
+          sources: shouldShowSources ? {
+            alibaba: processedResults.alibaba.length,
+            'made-in-china': processedResults['made-in-china'].length,
+            'cj-dropshipping': processedResults['cj-dropshipping'].length,
+            total: bossModeResults.totalResults,
+          } : {
+            total: bossModeResults.totalResults,
+          },
+          subscription: userId ? {
+            tier,
+            resultsLimit: tierConfig.limits.resultsPerSearch,
+            showSources: shouldShowSources,
+            bossMode: true,
+          } : undefined,
+          enhancement: {
+            puppeteerResults: bossModeResults.sources.puppeteer.count,
+            jigsawEnhancements: bossModeResults.sources.jigsawstack.count,
+            message: 'Results enhanced with AI-powered web scraping',
+          },
+        });
+        return;
+      }
+      
+      // ==================== STANDARD SEARCH ====================
       const results: Record<string, any[]> = {
         alibaba: [],
         'made-in-china': [],

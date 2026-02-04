@@ -5,6 +5,7 @@ import { SearchResult, SearchSource } from '../types';
 export interface SearchParams {
   query: string;
   sources?: SearchSource[];
+  bossMode?: boolean;
 }
 
 export interface SearchResponse {
@@ -12,11 +13,17 @@ export interface SearchResponse {
   results: Record<SearchSource, SearchResult[]>;
   timestamp: string;
   duration: number;
+  bossMode?: boolean;
   sources: {
-    alibaba: number;
-    'made-in-china': number;
-    'cj-dropshipping': number;
+    alibaba?: number;
+    'made-in-china'?: number;
+    'cj-dropshipping'?: number;
     total: number;
+  };
+  enhancement?: {
+    puppeteerResults: number;
+    jigsawEnhancements: number;
+    message: string;
   };
 }
 
@@ -26,6 +33,7 @@ export function useSearch() {
       const response = await api.post<SearchResponse>('/api/search', {
         query: params.query,
         sources: params.sources || ['alibaba', 'cj-dropshipping'],
+        bossMode: params.bossMode || false,
       });
       return response.data;
     } catch (error) {

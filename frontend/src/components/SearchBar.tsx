@@ -1,11 +1,13 @@
 import React from 'react';
-import { Card, TextField, Button, BlockStack, Box, InlineStack, Checkbox, Badge, Text } from '@shopify/polaris';
+import { Card, TextField, Button, BlockStack, Box, InlineStack, Checkbox, Badge, Text, Tooltip, Icon } from '@shopify/polaris';
+import { RocketIcon } from '@shopify/polaris-icons';
 import { useSearch } from '../hooks/useSearch';
 import useAppStore from '../store/appStore';
+import { hasFeature, getTierConfig } from '../config/subscriptions';
 import type { SearchSource } from '../types';
 
 interface SearchBarProps {
-  onSearch?: (query: string, sources?: SearchSource[]) => void;
+  onSearch?: (query: string, sources?: SearchSource[], bossMode?: boolean) => void;
   isLoading?: boolean;
   placeholder?: string;
 }
@@ -17,12 +19,16 @@ const SearchBar: React.FC<SearchBarProps> = ({
 }) => {
   const [searchQuery, setSearchQuery] = React.useState('');
   const [selectedSources, setSelectedSources] = React.useState<SearchSource[]>(['alibaba', 'made-in-china', 'cj-dropshipping']);
+  const [bossModeEnabled, setBossModeEnabled] = React.useState(false);
   const { performSearch } = useSearch();
   const setIsLoading = useAppStore((state) => state.setIsLoading);
   const setError = useAppStore((state) => state.setError);
   const storeLoading = useAppStore((state) => state.isLoading);
+  const subscription = useAppStore((state) => state.subscription);
   
   const isLoading = externalLoading !== undefined ? externalLoading : storeLoading;
+  const canUseBossMode = hasFeature(subscription.tier, 'bossMode');
+  const tierConfig = getTierConfig(subscription.tier);
 
   const toggleSource = (source: SearchSource) => {
     setSelectedSources(prev => {
@@ -52,14 +58,18 @@ const SearchBar: React.FC<SearchBarProps> = ({
 
     // If external onSearch callback is provided, use it
     if (onSearch) {
-      onSearch(searchQuery, selectedSources);
+      onSearch(searchQuery, selectedSources, bossModeEnabled && canUseBossMode);
       return;
     }
 
     // Otherwise use internal search logic
     setIsLoading(true);
     try {
-      const results = await performSearch({ query: searchQuery, sources: selectedSources });
+      const results = await performSearch({ 
+        query: searchQuery, 
+        sources: selectedSources,
+        bossMode: bossModeEnabled && canUseBossMode,
+      });
       console.log('Search results:', results);
       setError(null);
     } catch (error) {
@@ -125,13 +135,47 @@ const SearchBar: React.FC<SearchBarProps> = ({
               </InlineStack>
             </BlockStack>
 
+            {/* Boss Mode Toggle - Pro+ Feature */}
+            <BlockStack gap="200">
+              <InlineStack gap="200" align="center">
+                <Checkbox
+                  label=""
+                  checked={bossModeEnabled}
+                  onChange={() => setBossModeEnabled(!bossModeEnabled)}
+                  disabled={isLoading || !canUseBossMode}
+                />
+                <InlineStack gap="100" align="center">
+                  <Icon source={RocketIcon} tone={canUseBossMode && bossModeEnabled ? 'success' : 'subdued'} />
+                  <Text as="span" variant="bodyMd" fontWeight="semibold">
+                    Boss Mode
+                  </Text>
+                  {canUseBossMode ? (
+                    <Badge tone="success">PRO</Badge>
+                  ) : (
+                    <Tooltip content="Upgrade to Pro to unlock Boss Mode - AI-enhanced search across all sources">
+                      <Badge tone="attention">🔒 PRO</Badge>
+                    </Tooltip>
+                  )}
+                </InlineStack>
+              </InlineStack>
+              {canUseBossMode ? (
+                <Text as="span" variant="bodySm" tone="subdued">
+                  AI-enhanced search finds products from additional sources • {tierConfig.limits.bossModeSearchesPerDay === -1 ? 'Unlimited' : `${tierConfig.limits.bossModeSearchesPerDay}/day`}
+                </Text>
+              ) : (
+                <Text as="span" variant="bodySm" tone="subdued">
+                  Unlock AI-powered deep search across the web
+                </Text>
+              )}
+            </BlockStack>
+
             <Button 
               variant="primary"
               onClick={() => handleSearch({} as React.MouseEvent<HTMLButtonElement>)}
               disabled={isLoading || !searchQuery.trim() || selectedSources.length === 0}
               loading={isLoading}
             >
-              {isLoading ? 'Searching...' : `Search ${selectedSources.length} Source${selectedSources.length > 1 ? 's' : ''}`}
+              {isLoading ? 'Searching...' : bossModeEnabled && canUseBossMode ? '🚀 Boss Mode Search' : `Search ${selectedSources.length} Source${selectedSources.length > 1 ? 's' : ''}`}
             </Button>
           </BlockStack>
         </form>

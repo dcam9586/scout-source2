@@ -27,6 +27,7 @@ export async function getUserUsage(userId: number): Promise<{
   savedItems: number;
   pushToShopify: number;
   comparisons: number;
+  bossModeSearchesToday: number;
 }> {
   const pool = getPool();
   
@@ -38,13 +39,15 @@ export async function getUserUsage(userId: number): Promise<{
         saved_items_count, 
         push_to_shopify_count,
         searches_reset_date,
-        push_reset_date
+        push_reset_date,
+        COALESCE(boss_mode_searches_today, 0) as boss_mode_searches_today,
+        COALESCE(boss_mode_reset_date, NOW()) as boss_mode_reset_date
       FROM users WHERE id = $1`,
       [userId]
     );
     
     if (userResult.rows.length === 0) {
-      return { searches: 0, savedItems: 0, pushToShopify: 0, comparisons: 0 };
+      return { searches: 0, savedItems: 0, pushToShopify: 0, comparisons: 0, bossModeSearchesToday: 0 };
     }
     
     const user = userResult.rows[0];
@@ -53,9 +56,11 @@ export async function getUserUsage(userId: number): Promise<{
     const now = new Date();
     const searchResetDate = new Date(user.searches_reset_date);
     const pushResetDate = new Date(user.push_reset_date);
+    const bossModeResetDate = new Date(user.boss_mode_reset_date);
     
     let searches = user.searches_used || 0;
     let pushToShopify = user.push_to_shopify_count || 0;
+    let bossModeSearchesToday = user.boss_mode_searches_today || 0;
     
     // Reset search count if a month has passed
     if (now.getTime() - searchResetDate.getTime() > 30 * 24 * 60 * 60 * 1000) {
@@ -75,6 +80,16 @@ export async function getUserUsage(userId: number): Promise<{
       pushToShopify = 0;
     }
     
+    // Reset Boss Mode count if a day has passed
+    const oneDayMs = 24 * 60 * 60 * 1000;
+    if (now.getTime() - bossModeResetDate.getTime() > oneDayMs) {
+      await pool.query(
+        'UPDATE users SET boss_mode_searches_today = 0, boss_mode_reset_date = NOW() WHERE id = $1',
+        [userId]
+      );
+      bossModeSearchesToday = 0;
+    }
+    
     // Get saved items count
     const savedResult = await pool.query(
       'SELECT COUNT(*) as count FROM saved_items WHERE user_id = $1',
@@ -92,10 +107,11 @@ export async function getUserUsage(userId: number): Promise<{
       savedItems: parseInt(savedResult.rows[0].count) || 0,
       pushToShopify,
       comparisons: parseInt(comparisonsResult.rows[0].count) || 0,
+      bossModeSearchesToday,
     };
   } catch (error) {
     logger.error('GET_USAGE_ERROR', 'Failed to get user usage', error as Error);
-    return { searches: 0, savedItems: 0, pushToShopify: 0, comparisons: 0 };
+    return { searches: 0, savedItems: 0, pushToShopify: 0, comparisons: 0, bossModeSearchesToday: 0 };
   }
 }
 
@@ -104,14 +120,15 @@ export async function getUserUsage(userId: number): Promise<{
  */
 export async function incrementUsage(
   userId: number, 
-  type: 'searches' | 'savedItems' | 'pushToShopify'
+  type: 'searches' | 'savedItems' | 'pushToShopify' | 'bossModeSearches'
 ): Promise<void> {
   const pool = getPool();
   
-  const columnMap = {
+  const columnMap: Record<string, string> = {
     searches: 'searches_used',
     savedItems: 'saved_items_count',
     pushToShopify: 'push_to_shopify_count',
+    bossModeSearches: 'boss_mode_searches_today',
   };
   
   const column = columnMap[type];
@@ -192,6 +209,7 @@ export function checkLimit(limitType: keyof TierLimits) {
       savedItems: usage.savedItems,
       maxCompareItems: usage.comparisons,
       pushToShopifyPerMonth: usage.pushToShopify,
+      bossModeSearchesPerDay: usage.bossModeSearchesToday,
     };
     
     const currentUsage = usageMap[limitType];
@@ -277,6 +295,7 @@ function formatFeatureName(feature: keyof TierFeatures): string {
     allSources: 'All Supplier Sources',
     showSourceNames: 'Source Visibility',
     apiAccess: 'API Access',
+    bossMode: 'Boss Mode (AI Enhanced Search)',
     exportCsv: 'CSV Export',
     moqFilter: 'MOQ Filter',
     locationFilter: 'Location Filter',
@@ -303,6 +322,7 @@ function formatLimitName(limit: keyof TierLimits): string {
     savedItems: 'saved items',
     maxCompareItems: 'comparison items',
     pushToShopifyPerMonth: 'monthly Shopify pushes',
+    bossModeSearchesPerDay: 'daily Boss Mode searches',
   };
   
   return names[limit] || limit;

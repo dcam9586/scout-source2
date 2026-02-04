@@ -27,6 +27,7 @@ const TermsOfService = lazy(() => import('./pages/TermsOfService'));
 const AccountPage = lazy(() => import('./pages/AccountPage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 const PricingPage = lazy(() => import('./pages/PricingPage'));
+const PaymentSuccessPage = lazy(() => import('./pages/PaymentSuccessPage'));
 
 // Global Modal Components
 import UpgradeModal from './components/UpgradeModal';
@@ -120,6 +121,7 @@ const App: React.FC = () => {
               <Route path="/settings" element={<SettingsPage />} />
               <Route path="/settings/api-keys" element={<ApiKeysPage />} />
               <Route path="/pricing" element={<PricingPage />} />
+              <Route path="/payment/success" element={<PaymentSuccessPage />} />
               <Route path="/privacy" element={<PrivacyPolicy />} />
               <Route path="/terms" element={<TermsOfService />} />
               <Route path="*" element={<Navigate to="/" replace />} />

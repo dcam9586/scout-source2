@@ -11,6 +11,7 @@ export interface TierLimits {
   savedItems: number;
   maxCompareItems: number;
   pushToShopifyPerMonth: number;
+  bossModeSearchesPerDay: number; // Boss Mode daily limit (-1 = unlimited)
 }
 
 export interface TierFeatures {
@@ -18,6 +19,9 @@ export interface TierFeatures {
   allSources: boolean;
   showSourceNames: boolean;
   apiAccess: boolean;
+  
+  // Boss Mode - Enhanced AI-powered scraping
+  bossMode: boolean;
   
   // Basic Features
   exportCsv: boolean;
@@ -63,12 +67,16 @@ export const SUBSCRIPTION_TIERS: Record<SubscriptionTier, SubscriptionTierConfig
       savedItems: 10,
       maxCompareItems: 2,
       pushToShopifyPerMonth: 0,
+      bossModeSearchesPerDay: 0, // No Boss Mode for free tier
     },
     features: {
       // Sources - Limited
       allSources: false, // CJ Dropshipping only
       showSourceNames: false, // Hide where products come from
       apiAccess: false,
+      
+      // Boss Mode - Not available
+      bossMode: false,
       
       // Basic Features
       exportCsv: false,
@@ -102,12 +110,16 @@ export const SUBSCRIPTION_TIERS: Record<SubscriptionTier, SubscriptionTierConfig
       savedItems: 100,
       maxCompareItems: 5,
       pushToShopifyPerMonth: 5,
+      bossModeSearchesPerDay: 0, // No Boss Mode for starter tier
     },
     features: {
       // Sources - All but hidden
       allSources: true,
       showSourceNames: false, // Still hide source names
       apiAccess: false,
+      
+      // Boss Mode - Not available
+      bossMode: false,
       
       // Basic Features
       exportCsv: true,
@@ -141,12 +153,16 @@ export const SUBSCRIPTION_TIERS: Record<SubscriptionTier, SubscriptionTierConfig
       savedItems: -1, // Unlimited
       maxCompareItems: 10,
       pushToShopifyPerMonth: -1, // Unlimited
+      bossModeSearchesPerDay: 3, // 3 Boss Mode searches per day
     },
     features: {
       // Sources - Full visibility
       allSources: true,
       showSourceNames: true, // Show source names
       apiAccess: false,
+      
+      // Boss Mode - Available with daily limit
+      bossMode: true,
       
       // Basic Features
       exportCsv: true,
@@ -182,12 +198,16 @@ export const SUBSCRIPTION_TIERS: Record<SubscriptionTier, SubscriptionTierConfig
       savedItems: -1, // Unlimited
       maxCompareItems: -1, // Unlimited
       pushToShopifyPerMonth: -1, // Unlimited
+      bossModeSearchesPerDay: -1, // Unlimited Boss Mode
     },
     features: {
       // Sources - Everything
       allSources: true,
       showSourceNames: true,
       apiAccess: true,
+      
+      // Boss Mode - Unlimited
+      bossMode: true,
       
       // Basic Features
       exportCsv: true,
