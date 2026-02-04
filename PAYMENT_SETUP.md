@@ -5,12 +5,13 @@ This guide covers setting up Stripe and PayPal payment processing for SourceScou
 ## Table of Contents
 
 1. [Overview](#overview)
-2. [Stripe Setup](#stripe-setup)
-3. [PayPal Setup](#paypal-setup)
-4. [Environment Variables](#environment-variables)
-5. [Webhook Configuration](#webhook-configuration)
-6. [Testing](#testing)
-7. [Security Best Practices](#security-best-practices)
+2. [Quick Start (Railway)](#quick-start-railway)
+3. [Stripe Setup](#stripe-setup)
+4. [PayPal Setup](#paypal-setup)
+5. [Environment Variables](#environment-variables)
+6. [Webhook Configuration](#webhook-configuration)
+7. [Testing](#testing)
+8. [Security Best Practices](#security-best-practices)
 
 ---
 
@@ -24,6 +25,76 @@ Both integrations use:
 - **Hosted payment pages** (no card data touches our servers)
 - **Webhook verification** for security
 - **Subscription management** with automatic renewals
+
+---
+
+## Quick Start (Railway)
+
+### Step 1: Create Stripe Products (Automated)
+
+Run the setup script to create all products and prices in Stripe:
+
+```powershell
+# In PowerShell from backend folder
+cd SourceScout/backend
+
+# Set your Stripe secret key (get from https://dashboard.stripe.com/apikeys)
+$env:STRIPE_SECRET_KEY = "sk_test_YOUR_KEY_HERE"
+
+# Run the setup script
+node scripts/setup-stripe-products.js
+```
+
+This will output environment variables to copy.
+
+### Step 2: Create PayPal Plans (Automated)
+
+```powershell
+# Set PayPal credentials (get from https://developer.paypal.com)
+$env:PAYPAL_CLIENT_ID = "YOUR_CLIENT_ID"
+$env:PAYPAL_CLIENT_SECRET = "YOUR_CLIENT_SECRET"
+
+# Run the setup script
+node scripts/setup-paypal-products.js
+```
+
+### Step 3: Add Variables to Railway
+
+Go to Railway Dashboard → SourceScout → **Backend** service → Variables tab.
+
+Add all variables from the script output plus:
+
+```bash
+# Required Backend Variables
+STRIPE_SECRET_KEY=sk_live_xxxx
+STRIPE_WEBHOOK_SECRET=whsec_xxxx
+PAYPAL_CLIENT_ID=xxxx
+PAYPAL_CLIENT_SECRET=xxxx
+PAYPAL_WEBHOOK_ID=xxxx
+FRONTEND_URL=https://frontend-production-0078.up.railway.app
+
+# All STRIPE_PRICE_* and PAYPAL_PLAN_* from script output
+```
+
+Then go to **Frontend** service → Variables tab and add:
+
+```bash
+VITE_STRIPE_PUBLISHABLE_KEY=pk_live_xxxx
+```
+
+### Step 4: Set Up Webhooks
+
+**Stripe Webhooks** (https://dashboard.stripe.com/webhooks):
+- Endpoint URL: `https://backend-production-b4b9d.up.railway.app/api/v1/payments/stripe/webhook`
+- Events: `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`, `invoice.payment_failed`
+
+**PayPal Webhooks** (https://developer.paypal.com/dashboard):
+- Endpoint URL: `https://backend-production-b4b9d.up.railway.app/api/v1/payments/paypal/webhook`
+- Events: `BILLING.SUBSCRIPTION.ACTIVATED`, `BILLING.SUBSCRIPTION.CANCELLED`, `BILLING.SUBSCRIPTION.SUSPENDED`
+
+### Step 5: Redeploy
+
+Trigger a redeploy of both services in Railway for the new variables to take effect.
 
 ---
 
