@@ -1,0 +1,5 @@
+/*
+  Content-Security-Policy: frame-ancestors 'self' https://admin.shopify.com https://*.myshopify.com;
+  X-Frame-Options: ALLOW-FROM https://admin.shopify.com
+  Access-Control-Allow-Origin: *
+  Permissions-Policy: interest-cohort=()
