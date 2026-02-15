@@ -37,7 +37,6 @@ postgres_data/
 dump.rdb
 
 # Runtime
-.DS_Store
 *.pem
 
 # Development
@@ -47,3 +46,9 @@ tmp/
 # Testing
 coverage/
 .nyc_output/
+
+# Shopify App
+.shopify/
+.shopify.lock
+.react-router/
+/extensions/*/dist
