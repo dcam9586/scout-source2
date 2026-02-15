@@ -1,0 +1,147 @@
+# SourceScout Production Docker Compose
+# Includes: PostgreSQL, Redis, Backend, Frontend, Nginx (SSL Proxy)
+#
+# Usage:
+#   1. Copy .env.production.example to .env and configure
+#   2. Place SSL certs in ./nginx/ssl/ (or use Let's Encrypt)
+#   3. docker-compose -f docker-compose.prod.yml up -d
+#
+version: '3.8'
+
+services:
+  # ============================================
+  # Nginx Reverse Proxy with SSL
+  # ============================================
+  nginx:
+    image: nginx:alpine
+    container_name: sourcescout-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - ./frontend/dist:/usr/share/nginx/html:ro
+      - ./nginx/logs:/var/log/nginx
+    depends_on:
+      - backend
+    networks:
+      - sourcescout-network
+    healthcheck:
+      test: ["CMD", "nginx", "-t"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ============================================
+  # Backend API Server
+  # ============================================
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: sourcescout-backend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      DATABASE_URL: postgresql://sourcescout:${POSTGRES_PASSWORD}@postgres:5432/sourcescout
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: ${JWT_SECRET}
+      SHOPIFY_API_KEY: ${SHOPIFY_API_KEY}
+      SHOPIFY_API_SECRET: ${SHOPIFY_API_SECRET}
+      SHOPIFY_APP_URL: ${SHOPIFY_APP_URL}
+      CJ_API_KEY: ${CJ_API_KEY}
+      CJ_API_URL: https://developers.cjdropshipping.com/api2.0/v1
+    expose:
+      - "3001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - sourcescout-network
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # ============================================
+  # PostgreSQL Database
+  # ============================================
+  postgres:
+    image: postgres:16-alpine
+    container_name: sourcescout-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: sourcescout
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: sourcescout
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/prisma/migrations:/docker-entrypoint-initdb.d:ro
+    networks:
+      - sourcescout-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sourcescout"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ============================================
+  # Redis Cache
+  # ============================================
+  redis:
+    image: redis:7-alpine
+    container_name: sourcescout-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-sourcescout_redis}
+    volumes:
+      - redis_data:/data
+    networks:
+      - sourcescout-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ============================================
+  # Database Backup (runs daily at 2 AM)
+  # ============================================
+  backup:
+    image: postgres:16-alpine
+    container_name: sourcescout-backup
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: sourcescout
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_HOST: postgres
+      POSTGRES_DB: sourcescout
+    volumes:
+      - ./backups:/backups
+    entrypoint: |
+      sh -c 'while true; do
+        sleep 86400
+        pg_dump -h postgres -U sourcescout sourcescout | gzip > /backups/sourcescout_$$(date +%Y%m%d_%H%M%S).sql.gz
+        find /backups -mtime +7 -delete
+        echo "Backup completed at $$(date)"
+      done'
+    depends_on:
+      - postgres
+    networks:
+      - sourcescout-network
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  sourcescout-network:
+    driver: bridge
