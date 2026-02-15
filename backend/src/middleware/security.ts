@@ -48,8 +48,13 @@ export const corsOptions: cors.CorsOptions = {
       return callback(null, true);
     }
     
-    // Check if origin is in the allowed list
-    if (!origin || allowedOrigins.includes(origin)) {
+    // Check if origin is in the allowed list or is a Cloudflare Pages preview/production URL
+    if (
+      !origin || 
+      allowedOrigins.includes(origin) ||
+      origin.endsWith('.sourcescout-frontend.pages.dev') ||
+      origin === 'https://sourcescout-frontend.pages.dev'
+    ) {
       callback(null, true);
     } else {
       callback(new Error(`Origin ${origin} not allowed by CORS`));
